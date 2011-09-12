@@ -2,7 +2,7 @@
 
 namespace RedpillLinpro\ExamplesBundle\Model;
 
-use RedpillLinpro\NosqlBundle\Model\BaseModelArray;
+use RedpillLinpro\GamineBundle\Model\BaseModelArray;
 
 class Example extends BaseModelArray
 {

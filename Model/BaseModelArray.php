@@ -8,7 +8,7 @@
  *
  */
 
-namespace RedpillLinpro\NosqlBundle\Model;
+namespace RedpillLinpro\GamineBundle\Model;
 
 abstract class BaseModelArray implements StorableObjectInterface, \ArrayAccess
 {
@@ -23,7 +23,7 @@ abstract class BaseModelArray implements StorableObjectInterface, \ArrayAccess
     private $_strict_model = false;
     private $_property_keys = array();
 
-    public function fromDataArray($data, \RedpillLinpro\NosqlBundle\Manager\BaseManager $manager)
+    public function fromDataArray($data, \RedpillLinpro\GamineBundle\Manager\BaseManager $manager)
     {
         if (!empty($data)) {
             if (empty(static::$model_setup)) {

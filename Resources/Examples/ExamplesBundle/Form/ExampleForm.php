@@ -2,7 +2,7 @@
 
 namespace RedpillLinpro\ExamplesBundle\Form;
 
-use RedpillLinpro\NosqlBundle\Form\BaseForm;
+use RedpillLinpro\GamineBundle\Form\BaseForm;
 
 class ExampleForm extends BaseForm
 {

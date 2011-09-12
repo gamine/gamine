@@ -2,7 +2,7 @@
 
 namespace RedpillLinpro\ExamplesBundle\Manager;
 
-use RedpillLinpro\NosqlBundle\Manager\BaseManagerMongo;
+use RedpillLinpro\GamineBundle\Manager\BaseManagerMongo;
 
 class ExampleManagerMongo extends BaseManagerMongo
 {

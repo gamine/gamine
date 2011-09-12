@@ -2,7 +2,7 @@
 
 namespace RedpillLinpro\ExamplesBundle\Controller;
 
-use RedpillLinpro\NosqlBundle\Form\BaseForm;
+use RedpillLinpro\GamineBundle\Form\BaseForm;
 use RedpillLinpro\ExamplesBundle\Model as Model;
 
 use Symfony\Bundle\FrameworkBundle\Controller\Controller;

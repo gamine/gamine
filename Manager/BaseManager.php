@@ -8,7 +8,7 @@
  *
  */
 
-namespace RedpillLinpro\NosqlBundle\Manager;
+namespace RedpillLinpro\GamineBundle\Manager;
 
 abstract class BaseManager
 {
@@ -22,7 +22,7 @@ abstract class BaseManager
     // protected static $model       = 'Model\Base';
 
     /**
-     * @var \RedpillLinpro\NosqlBundle\Services\ServiceInterface
+     * @var \RedpillLinpro\GamineBundle\Services\ServiceInterface
      */
     protected $access_service;
 
@@ -55,7 +55,7 @@ abstract class BaseManager
         if (self::$_reader === null) {
             self::$_reader = new \Doctrine\Common\Annotations\AnnotationReader(new \Doctrine\Common\Cache\ArrayCache());
             self::$_reader->setEnableParsePhpImports(true);
-            self::$_reader->setDefaultAnnotationNamespace('RedpillLinpro\\NosqlBundle\\Annotations\\');
+            self::$_reader->setDefaultAnnotationNamespace('RedpillLinpro\\GamineBundle\\Annotations\\');
         }
         return self::$_reader;
     }
@@ -158,7 +158,7 @@ abstract class BaseManager
         if (!isset($this->new_entity_resource) || !isset($this->entity_resource) || !isset($this->collection_resource) || !isset($this->model)) {
             $rc = new \ReflectionClass(get_called_class());
             $resource_annotation = $this->getResourceAnnotation($rc);
-            if ($resource_annotation instanceof \RedpillLinpro\NosqlBundle\Annotations\Resources) {
+            if ($resource_annotation instanceof \RedpillLinpro\GamineBundle\Annotations\Resources) {
                 if ($resource_annotation->collection) {
                     $this->collection_resource = $resource_annotation->collection;
                 }
@@ -170,7 +170,7 @@ abstract class BaseManager
                 }
             }
             $model_annotation = $this->getModelAnnotation($rc);
-            if ($model_annotation instanceof \RedpillLinpro\NosqlBundle\Annotations\Model) {
+            if ($model_annotation instanceof \RedpillLinpro\GamineBundle\Annotations\Model) {
                 if ($model_annotation->name) {
                     $this->model = $model_annotation->name;
                 }
@@ -179,7 +179,7 @@ abstract class BaseManager
     }
     
     /**
-     * @return \RedpillLinpro\NosqlBundle\Services\ServiceInterface
+     * @return \RedpillLinpro\GamineBundle\Services\ServiceInterface
      */
     public function getAccessService()
     {
@@ -187,11 +187,11 @@ abstract class BaseManager
     }
 
     /**
-     * @return RedpillLinpro\NosqlBundle\Annotations\Resources
+     * @return RedpillLinpro\GamineBundle\Annotations\Resources
      */
     public function getResourceAnnotation($rc)
     {
-        return self::getAnnotationsReader()->getClassAnnotation($rc, 'RedpillLinpro\\NosqlBundle\\Annotations\\Resources');
+        return self::getAnnotationsReader()->getClassAnnotation($rc, 'RedpillLinpro\\GamineBundle\\Annotations\\Resources');
     }
 
     /**
@@ -199,11 +199,11 @@ abstract class BaseManager
      * 
      * @param \ReflectionProperty $property
      * 
-     * @return RedpillLinpro\NosqlBundle\Annotations\Id
+     * @return RedpillLinpro\GamineBundle\Annotations\Id
      */
     public function getIdAnnotation($property)
     {
-        return self::getAnnotationsReader()->getPropertyAnnotation($property, 'RedpillLinpro\\NosqlBundle\\Annotations\\Id');
+        return self::getAnnotationsReader()->getPropertyAnnotation($property, 'RedpillLinpro\\GamineBundle\\Annotations\\Id');
     }
     
     /**
@@ -211,19 +211,19 @@ abstract class BaseManager
      * 
      * @param \ReflectionProperty $property
      * 
-     * @return RedpillLinpro\NosqlBundle\Annotations\Column
+     * @return RedpillLinpro\GamineBundle\Annotations\Column
      */
     public function getColumnAnnotation($property)
     {
-        return self::getAnnotationsReader()->getPropertyAnnotation($property, 'RedpillLinpro\\NosqlBundle\\Annotations\\Column');
+        return self::getAnnotationsReader()->getPropertyAnnotation($property, 'RedpillLinpro\\GamineBundle\\Annotations\\Column');
     }
     
     /**
-     * @return RedpillLinpro\NosqlBundle\Annotations\Model
+     * @return RedpillLinpro\GamineBundle\Annotations\Model
      */
     public function getModelAnnotation($rc)
     {
-        return self::getAnnotationsReader()->getClassAnnotation($rc, 'RedpillLinpro\\NosqlBundle\\Annotations\\Model');
+        return self::getAnnotationsReader()->getClassAnnotation($rc, 'RedpillLinpro\\GamineBundle\\Annotations\\Model');
     }
 
     public function getCollectionResource()

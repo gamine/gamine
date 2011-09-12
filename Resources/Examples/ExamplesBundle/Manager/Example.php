@@ -2,7 +2,7 @@
 
 namespace RedpillLinpro\ExamplesBundle\Manager;
 
-use RedpillLinpro\NosqlBundle\Manager\BaseManager;
+use RedpillLinpro\GamineBundle\Manager\BaseManager;
 
 class Example extends BaseManager
 {

@@ -8,7 +8,7 @@
  *
  */
 
-namespace RedpillLinpro\NosqlBundle\Services;
+namespace RedpillLinpro\GamineBundle\Services;
 
 interface ServiceInterface
 {

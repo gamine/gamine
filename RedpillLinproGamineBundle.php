@@ -9,10 +9,10 @@
  */
 
 
-namespace RedpillLinpro\NosqlBundle;
+namespace RedpillLinpro\GamineBundle;
 
 use Symfony\Component\HttpKernel\Bundle\Bundle;
 
-class RedpillLinproNosqlBundle extends Bundle
+class RedpillLinproGamineBundle extends Bundle
 {
 }
