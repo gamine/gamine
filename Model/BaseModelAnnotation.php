@@ -231,7 +231,7 @@ abstract class BaseModelAnnotation implements StorableObjectInterface
         $related_manager = $relates_annotation->manager;
         $related_manager = new $related_manager($this->_entitymanager->getAccessService());
         if (!$related_manager instanceof \RedpillLinpro\GamineBundle\Manager\BaseManager)
-            throw new \Exception('The manager object must extend the nosql base manager class. Check that the manager= annotation has been correctly defined');
+            throw new \Exception('The manager object must extend the gamine base manager class. Check that the manager= annotation has been correctly defined');
             
         if (is_numeric($this->$property)) {
             $related_resource_location = str_replace('{:'.$related_manager->getDataArrayIdentifierColumn().'}', $this->$property, $relates_annotation->resource);

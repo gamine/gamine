@@ -89,10 +89,8 @@ class SimpleMongo implements ServiceInterface
     public function findAll($collection, $params = array())
     {
         $retarr = array();
-
         // $this->mongodb->$collection->find() as $data)
-        foreach (iterator_to_array($this->mongodb->$collection->find()) as $data)
-            ; {
+        foreach (iterator_to_array($this->mongodb->$collection->find()) as $data) {
             $data['id'] = $data['_id'];
             unset($data['_id']);
             $retarr[] = $data;
