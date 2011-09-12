@@ -52,6 +52,16 @@ abstract class BaseModelAnnotation implements StorableObjectInterface
     }
 
     /**
+     * Set $this->_entitymanager
+     *
+     * @param object $manager 
+     */
+    public function injectManager($manager)
+    {
+        $this->_entitymanager = $manager;
+    }
+
+    /**
      * Returns the unique identifier value for this object, usually the value
      * of an $id property, $<objecttype>Id or similar
      * 

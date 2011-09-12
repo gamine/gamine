@@ -310,7 +310,9 @@ abstract class BaseManager
 
         if (strpos($this->getEntityResource(), '{:'.$this->getDataArrayIdentifierColumn().'}') === false)
             throw new \Exception('This route does not have the required identification parameter, {'.$this->getDataArrayIdentifierColumn().'}');
-        
+
+        $object->injectManager($this);
+
         // Save can do both insert and update with MongoDB.
         if ($object->getDataArrayIdentifierValue()) {
             $resource = str_replace('{:'.$this->getDataArrayIdentifierColumn().'}', $object->getDataArrayIdentifierValue(), $this->getEntityResource());

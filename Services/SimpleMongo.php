@@ -35,6 +35,7 @@ class SimpleMongo implements ServiceInterface
         if (!$collection) {
             throw new \InvalidArgumentException("Got no collection to save the data");
         }
+        $mongo_collection = $this->mongodb->$collection;
 
         if (isset($data['id']))
         {
@@ -51,8 +52,6 @@ class SimpleMongo implements ServiceInterface
             $data['id'] = $data['_id']->{'$id'};
             unset($data['_id']);
         }
-   
-        $mongo_collection = $this->mongodb->$collection;
 
         if (isset($data['id'])) {
             $id = new \MongoId($data['id']);
@@ -61,10 +60,10 @@ class SimpleMongo implements ServiceInterface
         } else {
             $mongo_collection->insert($data);
         }
-
-        $data['id'] = $data['_id'];
-        unset($data['_id']);
-
+        if (isset($data['_id'])) {
+            $data['id'] = $data['_id'];
+            unset($data['_id']);
+        }
         return $data;
     }
 
