@@ -16,10 +16,14 @@ class SimpleMongo implements ServiceInterface
     private $mongo;
     private $mongodb;
 
-    public function __construct($dbhost, $dbname, $dbuser)
+    public function __construct($dbhost, $dbname)
     {
         $this->mongo = new \Mongo();
         $this->mongodb = $this->mongo->selectDB($dbname);
+    }
+
+    public function call($resource, $method = 'GET', $data = array())
+    {
     }
 
     public function save($data, $collection = null)
