@@ -13,7 +13,7 @@ namespace RedpillLinpro\GamineBundle\Model;
 interface StorableObjectInterface
 {
 
-    public function fromDataArray($data, \RedpillLinpro\GamineBundle\Manager\BaseManager $manager);
+    public function fromDataArray($data);
 
     public function toDataArray();
 

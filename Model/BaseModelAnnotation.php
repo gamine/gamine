@@ -41,9 +41,8 @@ abstract class BaseModelAnnotation implements StorableObjectInterface
      * @param array $data
      * @param \RedpillLinpro\GamineBundle\Manager\BaseManager $manager 
      */
-    public function fromDataArray($data, \RedpillLinpro\GamineBundle\Manager\BaseManager $manager)
+    public function fromDataArray($data)
     {
-        $this->_entitymanager = $manager;
         $this->_original_data = $data;
         $this->_dataArrayMap($data);
     }
@@ -281,7 +280,7 @@ abstract class BaseModelAnnotation implements StorableObjectInterface
             $value = array();
             foreach ($data as $single_result) {
                 $object = $manager->getInstantiatedModel();
-                $object->fromDataArray($single_result, $manager);
+                $object->fromDataArray($single_result);
                 $object->setResourceLocationPrefix($this->_getResourceLocation() . "/");
                 if ($object->hasDataArrayIdentifierValue()) {
                     $value[$object->getDataArrayIdentifierValue()] = $object;
@@ -291,7 +290,7 @@ abstract class BaseModelAnnotation implements StorableObjectInterface
             }
         } else {
             $value = $manager->getInstantiatedModel();
-            $value->fromDataArray($data, $manager);
+            $value->fromDataArray($data);
             $value->setResourceLocationPrefix($this->_getResourceLocation() . "/");
         }
         

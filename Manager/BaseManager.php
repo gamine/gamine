@@ -249,7 +249,10 @@ abstract class BaseManager
     public function getInstantiatedModel()
     {
         $classname = $this->getModelClassname();
-        return new $classname();
+        $object = new $classname();
+        $object->injectManager($this);
+        
+        return $object;
     }
 
     /*
@@ -261,7 +264,7 @@ abstract class BaseManager
         $objects = array();
         foreach ($this->access_service->findAll($this->getCollectionResource(), $params) as $o) {
             $object = $this->getInstantiatedModel();
-            $object->fromDataArray($o, $this);
+            $object->fromDataArray($o);
             $objects[] = $object;
         }
 
@@ -282,7 +285,7 @@ abstract class BaseManager
         }
 
         $object = $this->getInstantiatedModel();
-        $object->fromDataArray($data, $this);
+        $object->fromDataArray($data);
 
         return $object;
     }
@@ -294,7 +297,7 @@ abstract class BaseManager
         foreach ($this->access_service->findByKeyVal(
                 $this->getCollectionResource(), $key, $val, $params) as $o) {
             $object = $this->getInstantiatedModel();
-            $object->fromDataArray($o, $this);
+            $object->fromDataArray($o);
             $objects[] = $object;
         }
 
