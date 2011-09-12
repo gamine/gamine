@@ -23,6 +23,13 @@ abstract class BaseModelAnnotation implements StorableObjectInterface
      */
     protected $_entitymanager = null;
     
+    /**
+     * The original data that was passed to this entity via the data mapper
+     * 
+     * @var array
+     */
+    protected $_original_data = array();
+    
     protected $_resource_location = null;
     protected $_resource_location_prefix = null;
 
@@ -37,6 +44,7 @@ abstract class BaseModelAnnotation implements StorableObjectInterface
     public function fromDataArray($data, \RedpillLinpro\GamineBundle\Manager\BaseManager $manager)
     {
         $this->_entitymanager = $manager;
+        $this->_original_data = $data;
         $this->_dataArrayMap($data);
     }
 
@@ -49,6 +57,27 @@ abstract class BaseModelAnnotation implements StorableObjectInterface
     public function toDataArray()
     {
         return $this->_extractToDataArray();
+    }
+    
+    /**
+     * This function returns an array of properties that have been modified from
+     * its original value when this object was retrieved
+     * 
+     * @return array
+     */
+    public function getModifiedDataArray()
+    {
+        $new_data = $this->_extractToDataArray();
+        $diff_data = array();
+        foreach ($new_data as $field => $value) {
+            if (!array_key_exists($field, $this->_original_data) && $value === null) continue;
+            
+            if ($this->_original_data[$field] != $value) {
+                $orig_value = (array_key_exists($field, $this->_original_data)) ? $this->_original_data[$field] : null;
+                $diff_data[$field] = array('from' => $value, 'to' => $orig_value);
+            }
+        }
+        return $diff_data;
     }
 
     /**
