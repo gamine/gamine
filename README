@@ -1,28 +1,18 @@
 
-A Nosql Bundle for Symfony 2. 
+An alternative entity storage backend Bundle for Symfony 2. 
 
-Author: Thomas Lundquist <thomasez@redpill-linpro.com>
+Authors: 
+ - Daniel André Eikeland <dae@redpill-linpro.com>
+ - Alexander Morland <alek@redpill-linpro.com>
 
-Project started june 2011. 
+The GamineBundle provides a way to interface with a REST storage backend for 
+converting REST endpoint/resource urls into php entities.
 
-This is yet another way to access MongoDB (for now) in Symfony 2 and was
-created because of the disliking of the concept of the Doctrine ODM.
+Drivers are provided for MongoDB and generic REST.
 
-This is way smaller, simpler and definately not enterprisey but seems to 
-work on schema less databases. 
+TODO:
+ - more docs
 
-The concept is to use MongoDB for storage of array objects with as little
-work as possible to maintain the arrays.
-
-You will have to create the array base somehow and for now it's 
-in the model object.
-
-Documentation can be found in  Resources/doc/index.rst
-
--- more will arrive in this README later
-
-Just for todo:
-
- - Kyoto Cabinet
- - Couchbase.org
-
+Based on the Nosql bundle by Thomas Lundquist <thomasez@redpill-linpro.com> 
+(http://github.com/thomasez) and Daniel André Eikeland <dae@redpill-linpro.com> 
+(http://github.com/zegenie)
