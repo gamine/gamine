@@ -332,6 +332,15 @@ abstract class BaseModelAnnotation implements StorableObjectInterface
         $result = array();
 
         foreach ($this->_entitymanager->getReflectedClass()->getProperties() as $property) {
+            $relates_annotation = $this->getRelatesAnnotation($property);
+            $column_annotation = $this->getColumnAnnotation($property);
+            if ($relates_annotation && $relates_annotation->manager) {
+                $c_name = ($column_annotation->name) ? $column_annotation->name : $property->name;
+                if (array_key_exists($c_name, $this->_original_data)) {
+                    unset($this->_original_data[$c_name]);
+                }
+                continue;
+            }
             $this->_extractDataArrayProperty($property, $result);
         }
 
