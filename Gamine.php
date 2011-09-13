@@ -52,8 +52,8 @@ class Gamine
         if (!array_key_exists($manager, $this->_managersconfig))
             throw new Exception('This manager has not been configured. Please check your services configuration.');
         
-        $classname = $this->_managersconfig[$manager]['class'];
-        $this->_managers[$manager] = new $classname($this->getBackend($this->_managersconfig[$manager]['access_service']), $this);
+        $classname = "\\" . $this->_managersconfig[$manager]['class'];
+        $this->_managers[$classname] = new $classname($this->getBackend($this->_managersconfig[$manager]['access_service']), $this);
     }
     
     /**
@@ -68,33 +68,30 @@ class Gamine
         if (!array_key_exists($manager, $this->_managersconfig))
             throw new Exception('This manager has not been configured. Please check your services configuration.');
         
-        if (!array_key_exists($this->_managersconfig[$manager]['class'], $this->_managers)) {
+        $classname = "\\" . $this->_managersconfig[$manager]['class'];
+        if (!array_key_exists($classname, $this->_managers)) {
             $this->_initManager($manager);
         }
-        return $this->_managers[$manager];
+        return $this->_managers[$classname];
     }
     
     public function getClassManager($class)
     {
-        if ($class[0] === '\\') {
-            $class = substr($class,1);
-        }
-        $manager = false;
-        foreach ($this->_managersconfig as $managerKey => $config) {
-            if ($class === $config['class']) {
-                $manager = $managerKey;
-                break;
+        $classname = "\\{$class}";
+        if (!array_key_exists($classname, $this->_managers)) {
+            foreach ($this->_managersconfig as $manager => $config) {
+                if ($config['class'] == $class) {
+                    $this->_initManager($manager);
+                    break;
+                }
+            }
+            
+            if (!array_key_exists($classname, $this->_managers)) {
+                dd();
+                throw new \Exception('No services has been configured for this manager class. Please check your services configuration.');
             }
         }
-        if ($manager === false) {
-            throw new \Exception('No manager found for '.$class);
-        }
-        if (!array_key_exists($manager, $this->_managers)) {
-            $this->_initManager($manager);
-            if (!array_key_exists($manager, $this->_managers))
-                throw new Exception('No services has been configured for this manager class. Please check your services configuration.');
-        }
-        return $this->_managers[$manager];
+        return $this->_managers[$classname];
     }
     
 }
