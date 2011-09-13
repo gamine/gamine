@@ -46,6 +46,13 @@ abstract class BaseModelAnnotation implements StorableObjectInterface
         $this->_original_data = $data;
         $this->_dataArrayMap($data);
     }
+    
+    public function injectGamineEntityManager(\RedpillLinpro\GamineBundle\Manager\BaseManager $manager)
+    {
+        if ($this->_entitymanager !== null) return;
+        
+        $this->_entitymanager = $manager;
+    }
 
     /**
      * The manager calls this method to retrieve an array representation of the
@@ -78,17 +85,7 @@ abstract class BaseModelAnnotation implements StorableObjectInterface
         }
         return $diff_data;
     }
-
-    /**
-     * Set $this->_entitymanager
-     *
-     * @param object $manager 
-     */
-    public function injectManager($manager)
-    {
-        $this->_entitymanager = $manager;
-    }
-
+    
     /**
      * Returns the unique identifier value for this object, usually the value
      * of an $id property, $<objecttype>Id or similar
@@ -256,8 +253,7 @@ abstract class BaseModelAnnotation implements StorableObjectInterface
         
         $reflected_property = $this->_entitymanager->getReflectedClass()->getProperty($property);
         $relates_annotation = $this->getRelatesAnnotation($reflected_property);
-        $related_manager = $relates_annotation->manager;
-        $related_manager = new $related_manager($this->_entitymanager->getAccessService());
+        $related_manager = $this->_entitymanager->getGamineService()->getClassManager($relates_annotation->manager);
         if (!$related_manager instanceof \RedpillLinpro\GamineBundle\Manager\BaseManager)
             throw new \Exception('The manager object must extend the gamine base manager class. Check that the manager= annotation has been correctly defined');
             

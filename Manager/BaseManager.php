@@ -18,9 +18,11 @@ abstract class BaseManager
      * Or rather, they have to be defined in the object extending this one.
      */
 
-    // protected static $collection  = 'Base';
-    // protected static $model       = 'Model\Base';
-
+    /**
+     * @var \RedpillLinpro\GamineBundle\Gamine
+     */
+    protected $gamine_service;
+    
     /**
      * @var \RedpillLinpro\GamineBundle\Services\ServiceInterface
      */
@@ -140,40 +142,27 @@ abstract class BaseManager
         return static::$resource_routes[$routename];
     }
     
-    public function __construct($access_service, $options = array())
+    public function __construct($access_service, \RedpillLinpro\GamineBundle\Gamine $gamine_service)
     {
         $this->access_service = $access_service;
-        if (array_key_exists('model', $options)) {
-            $this->model = $options['model'];
-        }
-        if (array_key_exists('collection_resource', $options)) {
-            $this->collection_resource = $options['collection_resource'];
-        }
-        if (array_key_exists('entity_resource', $options)) {
-            $this->entity_resource = $options['entity_resource'];
-        }
-        if (array_key_exists('new_entity_resource', $options)) {
-            $this->new_entity_resource = $options['new_entity_resource'];
-        }
-        if (!isset($this->new_entity_resource) || !isset($this->entity_resource) || !isset($this->collection_resource) || !isset($this->model)) {
-            $rc = new \ReflectionClass(get_called_class());
-            $resource_annotation = $this->getResourceAnnotation($rc);
-            if ($resource_annotation instanceof \RedpillLinpro\GamineBundle\Annotations\Resources) {
-                if ($resource_annotation->collection) {
-                    $this->collection_resource = $resource_annotation->collection;
-                }
-                if ($resource_annotation->entity) {
-                    $this->entity_resource = $resource_annotation->entity;
-                }
-                if ($resource_annotation->new_entity) {
-                    $this->new_entity_resource = $resource_annotation->new_entity;
-                }
+        $this->gamine_service = $gamine_service;
+        $rc = new \ReflectionClass(get_called_class());
+        $resource_annotation = $this->getResourceAnnotation($rc);
+        if ($resource_annotation instanceof \RedpillLinpro\GamineBundle\Annotations\Resources) {
+            if ($resource_annotation->collection) {
+                $this->collection_resource = $resource_annotation->collection;
             }
-            $model_annotation = $this->getModelAnnotation($rc);
-            if ($model_annotation instanceof \RedpillLinpro\GamineBundle\Annotations\Model) {
-                if ($model_annotation->name) {
-                    $this->model = $model_annotation->name;
-                }
+            if ($resource_annotation->entity) {
+                $this->entity_resource = $resource_annotation->entity;
+            }
+            if ($resource_annotation->new_entity) {
+                $this->new_entity_resource = $resource_annotation->new_entity;
+            }
+        }
+        $model_annotation = $this->getModelAnnotation($rc);
+        if ($model_annotation instanceof \RedpillLinpro\GamineBundle\Annotations\Model) {
+            if ($model_annotation->name) {
+                $this->model = $model_annotation->name;
             }
         }
     }
@@ -184,6 +173,14 @@ abstract class BaseManager
     public function getAccessService()
     {
         return $this->access_service;
+    }
+
+    /**
+     * @return \RedpillLinpro\GamineBundle\Gamine
+     */
+    public function getGamineService()
+    {
+        return $this->gamine_service;
     }
 
     /**
@@ -250,7 +247,7 @@ abstract class BaseManager
     {
         $classname = $this->getModelClassname();
         $object = new $classname();
-        $object->injectManager($this);
+        $object->injectGamineEntityManager($this);
         
         return $object;
     }
@@ -304,7 +301,7 @@ abstract class BaseManager
         return $objects;
     }
 
-    public function save($object)
+    public function save(\RedpillLinpro\GamineBundle\Model\BaseModelAnnotation $object)
     {
         $classname = $this->getModelClassname();
         if (!$object instanceof $classname) {
@@ -314,8 +311,12 @@ abstract class BaseManager
         if (strpos($this->getEntityResource(), '{:'.$this->getDataArrayIdentifierColumn().'}') === false)
             throw new \Exception('This route does not have the required identification parameter, {'.$this->getDataArrayIdentifierColumn().'}');
 
-        $object->injectManager($this);
+        $object->injectGamineEntityManager($this);
 
+        if (method_exists($this, 'beforeSave')) {
+            $this->beforeSave($object);
+        }
+        
         // Save can do both insert and update with MongoDB.
         if ($object->getDataArrayIdentifierValue()) {
             $resource = str_replace('{:'.$this->getDataArrayIdentifierColumn().'}', $object->getDataArrayIdentifierValue(), $this->getEntityResource());
@@ -328,10 +329,14 @@ abstract class BaseManager
             $object->setDataArrayIdentifierValue($new_data[$this->getDataArrayIdentifierColumn()]);
         }
 
+        if (method_exists($this, 'afterSave')) {
+            $this->afterSave($object);
+        }
+        
         return $object;
     }
 
-    public function delete($object)
+    public function remove($object)
     {
 
         $classname = $this->getModelClassname();
@@ -343,9 +348,17 @@ abstract class BaseManager
             throw new \InvalidArgumentException('This is not an object I can delete since it does not have a entity identifier value');
         }
 
+        if (method_exists($this, 'beforeRemove')) {
+            $this->beforeRemove($object);
+        }
+        
         // Save can do both insert and update with MongoDB.
         $status = $this->access_service->remove($object->getDataArrayIdentifierValue(), $this->getEntityResource());
 
+        if (method_exists($this, 'afterRemove')) {
+            $status = $this->afterRemove($object, $status);
+        }
+        
         return $status;
     }
 
