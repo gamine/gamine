@@ -233,8 +233,7 @@ abstract class BaseModelAnnotation implements StorableObjectInterface
                 } elseif (array_key_exists($name, $result)) {
                     if ($relates_annotation !== null && is_array($result[$name])) {
                         if ($relates_annotation->manager) {
-                            $related_manager = $relates_annotation->manager;
-                            $related_manager = new $related_manager($this->_entitymanager->getAccessService());
+                            $related_manager = $this->_entitymanager->getGamineService()->getClassManager($relates_annotation->manager);
                         } else {
                             $related_manager = null;
                         }
