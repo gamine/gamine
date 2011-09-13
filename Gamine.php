@@ -32,6 +32,13 @@ class Gamine
         $this->_backends[$backend] = new $classname($this->_backendsconfig[$backend]['arguments']);
     }
     
+    /**
+     * Returns a service backend
+     * 
+     * @param string $backend
+     * 
+     * @return \RedpillLinpro\GamineBundle\Services\ServiceInterface
+     */
     public function getBackend($backend)
     {
         if (!array_key_exists($backend, $this->_backends)) {
@@ -49,6 +56,13 @@ class Gamine
         $this->_managers[$manager] = new $classname($this->getBackend($this->_managersconfig[$manager]['access_service']), $this);
     }
     
+    /**
+     * Returns an object manager
+     * 
+     * @param string $manager The manager as identified by the identifier in services.yml
+     * 
+     * @return \RedpillLinpro\GamineBundle\Manager\BaseManager
+     */
     public function getManager($manager)
     {
         if (!array_key_exists($manager, $this->_managersconfig))
