@@ -12,19 +12,21 @@ namespace RedpillLinpro\GamineBundle\Services;
 
 interface ServiceInterface
 {
+    
+    public function __construct($options = array());
 
-  public function save($data, $collection = null);
+    public function save($data, $collection = null);
 
-  public function remove($data, $collection = null);
+    public function remove($data, $collection = null);
 
-  public function findAll($collection, $params = array());
+    public function findAll($collection, $params = array());
 
-  public function findOneById($collection, $id, $params = array());
+    public function findOneById($collection, $id, $params = array());
 
-  public function findOneByKeyVal($collection, $key, $val, $params = array());
+    public function findOneByKeyVal($collection, $key, $val, $params = array());
 
-  public function findByKeyVal($collection, $key, $val, $params = array());
-  
-  public function call($resource, $method = 'GET', $data = array());
+    public function findByKeyVal($collection, $key, $val, $params = array());
+
+    public function call($resource, $method = 'GET', $data = array());
 
 }
