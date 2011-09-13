@@ -252,10 +252,6 @@ abstract class BaseManager
         return $object;
     }
 
-    /*
-     * Finders
-     */
-
     public function findAll($params = array())
     {
         $objects = array();
@@ -312,28 +308,35 @@ abstract class BaseManager
             throw new \Exception('This route does not have the required identification parameter, {'.$this->getDataArrayIdentifierColumn().'}');
 
         $object->injectGamineEntityManager($this);
+        $is_new = !(bool) $object->getDataArrayIdentifierValue();
 
+        $do_continue = true;
         if (method_exists($this, 'beforeSave')) {
-            $this->beforeSave($object);
+            $do_continue = $this->beforeSave($object);
         }
         
-        // Save can do both insert and update with MongoDB.
-        if ($object->getDataArrayIdentifierValue()) {
-            $resource = str_replace('{:'.$this->getDataArrayIdentifierColumn().'}', $object->getDataArrayIdentifierValue(), $this->getEntityResource());
+        if ($do_continue) {
+            // Save can do both insert and update with MongoDB.
+            if ($object->getDataArrayIdentifierValue()) {
+                $resource = str_replace('{:'.$this->getDataArrayIdentifierColumn().'}', $object->getDataArrayIdentifierValue(), $this->getEntityResource());
+            } else {
+                $resource = $this->getNewEntityResource();
+            }
+            $new_data = $this->access_service->save($object, $resource);
+            $result = true;
+
+            if (isset($new_data[$this->getDataArrayIdentifierColumn()])) {
+                $object->setDataArrayIdentifierValue($new_data[$this->getDataArrayIdentifierColumn()]);
+            }
+
+            if (method_exists($this, 'afterSave')) {
+                $this->afterSave($object, $is_new);
+            }
         } else {
-            $resource = $this->getNewEntityResource();
-        }
-        $new_data = $this->access_service->save($object, $resource);
-
-        if (isset($new_data[$this->getDataArrayIdentifierColumn()])) {
-            $object->setDataArrayIdentifierValue($new_data[$this->getDataArrayIdentifierColumn()]);
-        }
-
-        if (method_exists($this, 'afterSave')) {
-            $this->afterSave($object);
+            $result = false;
         }
         
-        return $object;
+        return $result;
     }
 
     public function remove($object)
