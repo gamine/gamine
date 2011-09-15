@@ -66,7 +66,7 @@ class Gamine
     public function getManager($manager)
     {
         if (!array_key_exists($manager, $this->_managersconfig))
-            throw new Exception('This manager has not been configured. Please check your services configuration.');
+            throw new \Exception('This manager has not been configured. Please check your services configuration.');
         
         $classname = "\\" . $this->_managersconfig[$manager]['class'];
         if (!array_key_exists($classname, $this->_managers)) {
