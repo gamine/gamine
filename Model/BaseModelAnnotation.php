@@ -222,6 +222,9 @@ abstract class BaseModelAnnotation implements StorableObjectInterface
                 }
             } else {
                 $name = ($column_annotation->name) ? $column_annotation->name : $property->name;
+                if (!array_key_exists($name, $result)) {
+                    return;
+                }
                 if ($extract_annotation = $this->_entitymanager->getAnnotationsReader()->getPropertyAnnotation($property, 'RedpillLinpro\\GamineBundle\\Annotations\\Extract')) {
 
                     if (!$extract_annotation->hasColumns())
@@ -230,7 +233,7 @@ abstract class BaseModelAnnotation implements StorableObjectInterface
                     foreach ($extract_annotation->columns as $column => $extract_to_property) {
                         $this->_applyDataArrayProperty($extract_to_property, $result[$name], $column);
                     }
-                } elseif (array_key_exists($name, $result)) {
+                } else {
                     if ($relates_annotation !== null && is_array($result[$name])) {
                         if ($relates_annotation->manager) {
                             $related_manager = $this->_entitymanager->getGamineService()->getClassManager($relates_annotation->manager);
