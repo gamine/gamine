@@ -24,6 +24,7 @@ class SimpleMongo implements ServiceInterface
 
     public function call($resource, $method = 'GET', $data = array())
     {
+        return $this->findAll($resource, $data);
     }
 
     public function save($data, $collection = null)
@@ -89,8 +90,9 @@ class SimpleMongo implements ServiceInterface
     public function findAll($collection, $params = array())
     {
         $retarr = array();
+        $results = $this->mongodb->$collection->find($params);
         // $this->mongodb->$collection->find() as $data)
-        foreach (iterator_to_array($this->mongodb->$collection->find()) as $data) {
+        foreach (iterator_to_array($results) as $data) {
             $data['id'] = $data['_id'];
             unset($data['_id']);
             $retarr[] = $data;

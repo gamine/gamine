@@ -80,7 +80,7 @@ abstract class BaseModelAnnotation implements StorableObjectInterface
             
             if ($this->_original_data[$field] != $value) {
                 $orig_value = (array_key_exists($field, $this->_original_data)) ? $this->_original_data[$field] : null;
-                $diff_data[$field] = array('from' => $value, 'to' => $orig_value);
+                $diff_data[$field] = array('from' => $orig_value, 'to' => $value);
             }
         }
         return $diff_data;
@@ -256,13 +256,28 @@ abstract class BaseModelAnnotation implements StorableObjectInterface
         if (!$related_manager instanceof \RedpillLinpro\GamineBundle\Manager\BaseManager)
             throw new \Exception('The manager object must extend the gamine base manager class. Check that the manager= annotation has been correctly defined');
             
+        $query_data = array();
         if (is_numeric($this->$property)) {
             $related_resource_location = str_replace('{:'.$related_manager->getDataArrayIdentifierColumn().'}', $this->$property, $relates_annotation->resource);
         } else {
             $related_resource_location = $relates_annotation->resource;
         }
-        $final_resource_location = (substr($related_resource_location, 0, 1) == "/") ? $related_resource_location : $this->_getResourceLocation() . '/' . $related_resource_location;
-        $data = $this->_entitymanager->getAccessService()->call($final_resource_location, 'GET', array());
+        $final_resource_location = ($relates_annotation->relative) ? $this->_getResourceLocation() . '/' . $related_resource_location : $related_resource_location;
+        if ($relates_annotation->related_by) {
+            if (is_array($relates_annotation->related_by)) {
+                foreach ($relates_annotation->related_by as $param => $val) {
+                    if ($val[0] == "$") {
+                        $val = substr($val, 1);
+                        $query_data[$param] = $this->$val;
+                    } else {
+                        $query_data[$param] = $val;
+                    }
+                }
+            } else {
+                $query_data[$param] = $this->$param;
+            }
+        }
+        $data = $related_manager->getAccessService()->call($final_resource_location, 'GET', $query_data);
         
         $this->_mapRelationData($property, $data, $relates_annotation, $related_manager);
     }
@@ -278,7 +293,7 @@ abstract class BaseModelAnnotation implements StorableObjectInterface
                 $object->fromDataArray($single_result);
                 $object->setResourceLocationPrefix($this->_getResourceLocation() . "/");
                 if ($object->hasDataArrayIdentifierValue()) {
-                    $value[$object->getDataArrayIdentifierValue()] = $object;
+                    $value[(string) $object->getDataArrayIdentifierValue()] = $object;
                 } else {
                     $value[] = $object;
                 }
