@@ -265,7 +265,7 @@ abstract class BaseModelAnnotation implements StorableObjectInterface
         } else {
             $related_resource_location = $relates_annotation->resource;
         }
-        $final_resource_location = ($relates_annotation->relative) ? $this->_getResourceLocation() . '/' . $related_resource_location : $related_resource_location;
+        $final_resource_location = ($relates_annotation->relative) ? $this->_getResourceLocation() . '/' . $this->getDataArrayIdentifierValue() . '/' . $related_resource_location : $related_resource_location;
         if ($relates_annotation->related_by) {
             if (is_array($relates_annotation->related_by)) {
                 foreach ($relates_annotation->related_by as $param => $val) {
