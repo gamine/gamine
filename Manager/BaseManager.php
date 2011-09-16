@@ -40,7 +40,6 @@ abstract class BaseManager
     
     protected $collection_resource;
     protected $entity_resource;
-    protected $new_entity_resource;
 
     protected $model;
     protected $_id_property = null;
@@ -155,9 +154,6 @@ abstract class BaseManager
             if ($resource_annotation->entity) {
                 $this->entity_resource = $resource_annotation->entity;
             }
-            if ($resource_annotation->new_entity) {
-                $this->new_entity_resource = $resource_annotation->new_entity;
-            }
         }
         $model_annotation = $this->getModelAnnotation($rc);
         if ($model_annotation instanceof \RedpillLinpro\GamineBundle\Annotations\Model) {
@@ -233,11 +229,6 @@ abstract class BaseManager
         return $this->entity_resource;
     }
 
-    public function getNewEntityResource()
-    {
-        return $this->new_entity_resource;
-    }
-
     public function getModelClassname()
     {
         return $this->model;
@@ -266,10 +257,7 @@ abstract class BaseManager
 
     public function findOneById($id, $params = array())
     {
-        if (strpos($this->getEntityResource(), '{:'.$this->getDataArrayIdentifierColumn().'}') === false)
-            throw new \Exception('This route does not have the required identification parameter, {'.$this->getDataArrayIdentifierColumn().'}');
-                
-        $resource = str_replace('{:'.$this->getDataArrayIdentifierColumn().'}', $id, $this->getEntityResource());
+        $resource = $this->getEntityResource();
         $data = $this->access_service->findOneById(
                 $resource, $id, $params);
 
@@ -304,9 +292,6 @@ abstract class BaseManager
             throw new \InvalidArgumentException('This is not an object I can save, it must be of the same classname defined in this manager');
         }
 
-        if (strpos($this->getEntityResource(), '{:'.$this->getDataArrayIdentifierColumn().'}') === false)
-            throw new \Exception('This route does not have the required identification parameter, {'.$this->getDataArrayIdentifierColumn().'}');
-
         $object->injectGamineEntityManager($this);
         $is_new = !(bool) $object->getDataArrayIdentifierValue();
 
@@ -317,12 +302,7 @@ abstract class BaseManager
         
         if ($do_continue) {
             // Save can do both insert and update with MongoDB.
-            if ($object->getDataArrayIdentifierValue()) {
-                $resource = str_replace('{:'.$this->getDataArrayIdentifierColumn().'}', $object->getDataArrayIdentifierValue(), $this->getEntityResource());
-            } else {
-                $resource = $this->getNewEntityResource();
-            }
-            $new_data = $this->access_service->save($object, $resource);
+            $new_data = $this->access_service->save($object, $this->getEntityResource());
             $result = true;
 
             if (isset($new_data[$this->getDataArrayIdentifierColumn()])) {
