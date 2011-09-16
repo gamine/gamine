@@ -60,7 +60,29 @@ abstract class BaseManager
         }
         return self::$_reader;
     }
-    
+
+    public function __construct($access_service, $gamine_service)
+    {
+        $this->access_service = $access_service;
+        $this->gamine_service = $gamine_service;
+        $rc = new \ReflectionClass(get_called_class());
+        $resource_annotation = $this->getResourceAnnotation($rc);
+        if ($resource_annotation instanceof \RedpillLinpro\GamineBundle\Annotations\Resources) {
+            if ($resource_annotation->collection) {
+                $this->collection_resource = $resource_annotation->collection;
+            }
+            if ($resource_annotation->entity) {
+                $this->entity_resource = $resource_annotation->entity;
+            }
+        }
+        $model_annotation = $this->getModelAnnotation($rc);
+        if ($model_annotation instanceof \RedpillLinpro\GamineBundle\Annotations\Model) {
+            if ($model_annotation->name) {
+                $this->model = $model_annotation->name;
+            }
+        }
+    }
+
     /**
      * Get a reflection class object valid for this static class, so we don't
      * have to instantiate a new one for each instance with the overhead that
@@ -140,28 +162,7 @@ abstract class BaseManager
                 
         return static::$resource_routes[$routename];
     }
-    
-    public function __construct($access_service, \RedpillLinpro\GamineBundle\Gamine $gamine_service)
-    {
-        $this->access_service = $access_service;
-        $this->gamine_service = $gamine_service;
-        $rc = new \ReflectionClass(get_called_class());
-        $resource_annotation = $this->getResourceAnnotation($rc);
-        if ($resource_annotation instanceof \RedpillLinpro\GamineBundle\Annotations\Resources) {
-            if ($resource_annotation->collection) {
-                $this->collection_resource = $resource_annotation->collection;
-            }
-            if ($resource_annotation->entity) {
-                $this->entity_resource = $resource_annotation->entity;
-            }
-        }
-        $model_annotation = $this->getModelAnnotation($rc);
-        if ($model_annotation instanceof \RedpillLinpro\GamineBundle\Annotations\Model) {
-            if ($model_annotation->name) {
-                $this->model = $model_annotation->name;
-            }
-        }
-    }
+
     
     /**
      * @return \RedpillLinpro\GamineBundle\Services\ServiceInterface
