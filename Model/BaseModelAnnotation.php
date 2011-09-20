@@ -232,7 +232,11 @@ abstract class BaseModelAnnotation implements StorableObjectInterface
 
                     foreach ($extract_annotation->columns as $column => $extract_to_property) {
                         $this->_applyDataArrayProperty($extract_to_property, $result[$name], $column);
+                        if (!$extract_annotation->preserve_items) {
+                            unset($result[$name][$column]);
+                        }
                     }
+                    $this->{$property->name} = $result[$name];
                 } else {
                     if ($relates_annotation !== null && is_array($result[$name])) {
                         if ($relates_annotation->manager) {
