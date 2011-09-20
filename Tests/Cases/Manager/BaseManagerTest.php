@@ -1,6 +1,6 @@
 <?php
 
-namespace RedpillLinpro\GamineBundle\Tests\Manager;
+namespace RedpillLinpro\GamineBundle\Tests\Cases\Manager;
 
 use RedpillLinpro\GamineBundle\Manager\BaseManager;
 
