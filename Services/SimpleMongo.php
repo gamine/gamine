@@ -104,6 +104,7 @@ class SimpleMongo implements ServiceInterface
     {
         $data = $this->mongodb->$collection->findOne(
            array('_id' => new \MongoId($id)));
+        if(!$data) return null;
         $data['id'] = $data['_id']->{'$id'};
         unset($data['_id']);
         return $data;
