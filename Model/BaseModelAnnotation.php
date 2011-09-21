@@ -78,7 +78,7 @@ abstract class BaseModelAnnotation implements StorableObjectInterface
         foreach ($new_data as $field => $value) {
             if (!array_key_exists($field, $this->_original_data) && $value === null) continue;
             
-            if ($this->_original_data[$field] != $value) {
+            if (!array_key_exists($field, $this->_original_data) || $this->_original_data[$field] != $value) {
                 $orig_value = (array_key_exists($field, $this->_original_data)) ? $this->_original_data[$field] : null;
                 $diff_data[$field] = array('from' => $orig_value, 'to' => $value);
             }
