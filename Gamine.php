@@ -81,10 +81,6 @@ class Gamine
     {
         $classname = $this->_entityconfigs[$entity]['model']['class'];
 
-        if (!isset($this->_datasource_meta[$entity]['model'])) {
-
-        }
-
         $object = new $classname();
         $object->injectGamineService($this, $entity);
         return $object;
