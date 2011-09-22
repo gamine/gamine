@@ -1,5 +1,4 @@
 <?php
-
 /**
  * @author    Daniel André Eikeland <dae@redpill-linpro.com>
  * @copyright 2011 Redpill Linpro AS
@@ -22,21 +21,21 @@ class Gamine
         $this->_backendsconfig = $backends;
         $this->_managersconfig = $managers;
     }
-    
+
     protected function _initBackend($backend)
     {
         if (!array_key_exists($backend, $this->_backendsconfig))
             throw new Exception('This backend has not been configured. Please check your services configuration.');
-        
+
         $classname = $this->_backendsconfig[$backend]['class'];
         $this->_backends[$backend] = new $classname($this->_backendsconfig[$backend]['arguments']);
     }
-    
+
     /**
      * Returns a service backend
-     * 
+     *
      * @param string $backend
-     * 
+     *
      * @return \RedpillLinpro\GamineBundle\Services\ServiceInterface
      */
     public function getBackend($backend)
@@ -93,5 +92,4 @@ class Gamine
         }
         return $this->_managers[$classname];
     }
-    
 }

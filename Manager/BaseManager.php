@@ -1,5 +1,4 @@
 <?php
-
 /**
  *
  * @author    Thomas Lundquist <thomasez@redpill-linpro.com>
@@ -22,7 +21,7 @@ abstract class BaseManager
      * @var \RedpillLinpro\GamineBundle\Gamine
      */
     protected $gamine_service;
-    
+
     /**
      * @var \RedpillLinpro\GamineBundle\Services\ServiceInterface
      */
@@ -37,7 +36,7 @@ abstract class BaseManager
      * @var \ReflectionClass
      */
     protected $_reflectedclass = null;
-    
+
     protected $collection_resource;
     protected $entity_resource;
 
@@ -87,7 +86,7 @@ abstract class BaseManager
      * Get a reflection class object valid for this static class, so we don't
      * have to instantiate a new one for each instance with the overhead that
      * comes with it
-     * 
+     *
      * @return \ReflectionClass
      */
     public function getReflectedClass()
@@ -99,10 +98,10 @@ abstract class BaseManager
     }
 
     /**
-     * This method is called internally from the class. It reads through the 
+     * This method is called internally from the class. It reads through the
      * annotated properties to find which columns and resultset array keys is
      * defined as the identifier columns
-     * 
+     *
      * This is needed for auto-populating object's id value for new objects, as
      * well as being able to return a proper array representation of the object
      * to the manager for storage.
@@ -125,11 +124,11 @@ abstract class BaseManager
                 $this->_data_array_identifiable = false;
         }
     }
-    
+
     /**
      * Returns the identifier column, used by the manager when finding which
      * data array column to use as the identifier value
-     * 
+     *
      * @return string
      */
     public function getDataArrayIdentifierColumn()
@@ -137,11 +136,11 @@ abstract class BaseManager
         $this->_populateAnnotatedIdValues();
         return $this->_id_column;
     }
-    
+
     /**
      * Returns the identifier property, used by the entity when finding which
      * property to use as the identifier value
-     * 
+     *
      * @return string
      */
     public function getDataArrayIdentifierProperty()
@@ -149,21 +148,21 @@ abstract class BaseManager
         $this->_populateAnnotatedIdValues();
         return $this->_id_property;
     }
-    
+
     public function hasDataArrayIdentifierProperty()
     {
         return (bool) $this->_data_array_identifiable;
     }
-    
+
     public function getResourceRoute($routename)
     {
         if (!array_key_exists($routename, static::$resource_routes))
             throw new Exception('This route does not exist in the static array property $resource_routes on this manager');
-                
+
         return static::$resource_routes[$routename];
     }
 
-    
+
     /**
      * @return \RedpillLinpro\GamineBundle\Services\ServiceInterface
      */
@@ -303,7 +302,7 @@ abstract class BaseManager
         if (method_exists($this, 'beforeSave')) {
             $do_continue = $this->beforeSave($object);
         }
-        
+
         if ($do_continue) {
             // Save can do both insert and update with MongoDB.
             $new_data = $this->access_service->save($object, $this->getEntityResource());
@@ -322,7 +321,7 @@ abstract class BaseManager
         } else {
             $result = false;
         }
-        
+
         return $result;
     }
 
@@ -341,14 +340,14 @@ abstract class BaseManager
         if (method_exists($this, 'beforeRemove')) {
             $this->beforeRemove($object);
         }
-        
+
         // Save can do both insert and update with MongoDB.
         $status = $this->access_service->remove($object->getDataArrayIdentifierValue(), $this->getEntityResource());
 
         if (method_exists($this, 'afterRemove')) {
             $status = $this->afterRemove($object, $status);
         }
-        
+
         return $status;
     }
 

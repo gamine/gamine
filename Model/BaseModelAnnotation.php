@@ -25,11 +25,11 @@ abstract class BaseModelAnnotation implements StorableObjectInterface
     
     /**
      * The original data that was passed to this entity via the data mapper
-     * 
+     *
      * @var array
      */
     protected $_original_data = array();
-    
+
     protected $_resource_location = null;
     protected $_resource_location_prefix = null;
 
@@ -37,7 +37,7 @@ abstract class BaseModelAnnotation implements StorableObjectInterface
      * Called from the manager, populates the object with data from a response
      * Also passes the manager in, so a reference to it can be statically cached
      * for later calls (lazy-loading / auto-retrieving), etc.
-     * 
+     *
      * @param array $data
      * @param \RedpillLinpro\GamineBundle\Manager\BaseManager $manager 
      */
@@ -57,18 +57,18 @@ abstract class BaseModelAnnotation implements StorableObjectInterface
     /**
      * The manager calls this method to retrieve an array representation of the
      * object data, based on the structure defined in the object's annotations
-     * 
+     *
      * @return array
      */
     public function toDataArray()
     {
         return $this->_extractToDataArray();
     }
-    
+
     /**
      * This function returns an array of properties that have been modified from
      * its original value when this object was retrieved
-     * 
+     *
      * @return array
      */
     public function getModifiedDataArray()
@@ -77,7 +77,7 @@ abstract class BaseModelAnnotation implements StorableObjectInterface
         $diff_data = array();
         foreach ($new_data as $field => $value) {
             if (!array_key_exists($field, $this->_original_data) && $value === null) continue;
-            
+
             if (!array_key_exists($field, $this->_original_data) || $this->_original_data[$field] != $value) {
                 $orig_value = (array_key_exists($field, $this->_original_data)) ? $this->_original_data[$field] : null;
                 $diff_data[$field] = array('from' => $orig_value, 'to' => $value);
@@ -85,11 +85,11 @@ abstract class BaseModelAnnotation implements StorableObjectInterface
         }
         return $diff_data;
     }
-    
+
     /**
      * Returns the unique identifier value for this object, usually the value
      * of an $id property, $<objecttype>Id or similar
-     * 
+     *
      * @return mixed
      */
     public function getDataArrayIdentifierValue()
@@ -104,11 +104,11 @@ abstract class BaseModelAnnotation implements StorableObjectInterface
     
     /**
      * Set the unique identifier value for this object
-     * 
+     *
      * This method is used by the manager to set the identifier value to the
      * value retrieved from the remote call after storing this object
-     * 
-     * @param mixed $identifier_value 
+     *
+     * @param mixed $identifier_value
      */
     public function setDataArrayIdentifierValue($identifier_value)
     {
@@ -160,7 +160,7 @@ abstract class BaseModelAnnotation implements StorableObjectInterface
     /**
      * Returns the resource location for this object, used when saving this
      * object via the manager
-     * 
+     *
      * @return string
      */
     protected function _getResourceLocation()
@@ -170,7 +170,7 @@ abstract class BaseModelAnnotation implements StorableObjectInterface
         }
         return $this->_resource_location_prefix . $this->_resource_location;
     }
-    
+
     protected function getResourceByRoutename($routename, $params = array())
     {
         $resource = $this->_entitymanager->getResourceRoute($routename);
@@ -179,33 +179,33 @@ abstract class BaseModelAnnotation implements StorableObjectInterface
         }
         return $resource;
     }
-    
+
     protected function _apiCall($routename, $params = array())
     {
         return $this->_apiGet($routename, $params);
     }
-    
+
     protected function _apiGet($routename, $params = array())
     {
         $resource_route = $this->getResourceByRoutename($routename, $params);
         $resource_route = (substr($resource_route, 0, 1) == "/") ? $resource_route : $this->_getResourceLocation() . '/' . $resource_route;
-        
+        dd($resource_route);
         return $this->_entitymanager->getAccessService()->call($resource_route);
     }
-    
+
     protected function _apiSet($routename, $params = array(), $post_params = array())
     {
         $resource_route = $this->getResourceByRoutename($routename, $params);
         $resource_route = (substr($resource_route, 0, 1) == "/") ? $resource_route : $this->_getResourceLocation() . '/' . $resource_route;
-        
+
         return $this->_entitymanager->getAccessService()->call($resource_route, 'POST', $post_params);
     }
-    
+
     protected function _apiUnset($routename, $params = array(), $post_params = array())
     {
         $resource_route = $this->getResourceByRoutename($routename, $params);
         $resource_route = (substr($resource_route, 0, 1) == "/") ? $resource_route : $this->_getResourceLocation() . '/' . $resource_route;
-        
+
         return $this->_entitymanager->getAccessService()->call($resource_route, 'DELETE', $post_params);
     }
     
@@ -252,7 +252,7 @@ abstract class BaseModelAnnotation implements StorableObjectInterface
             }
         }
     }
-    
+
     protected function _populateRelatedObject($property)
     {
         if (is_array($this->$property) || is_object($this->$property)) return;
