@@ -9,6 +9,8 @@
 
 namespace RedpillLinpro\GamineBundle\Manager;
 
+use \Exception;
+
 abstract class BaseManager
 {
     /*
@@ -26,6 +28,8 @@ abstract class BaseManager
      * @var \RedpillLinpro\GamineBundle\Services\ServiceInterface
      */
     protected $access_service;
+
+    protected $entity_key;
 
     /**
      * @var \Doctrine\Common\Annotations\AnnotationReader
@@ -45,41 +49,11 @@ abstract class BaseManager
     protected $_id_column = null;
     protected $_data_array_identifiable = null;
 
-    /**
-     * Get an Annotationn reader object
-     *
-     * @return \Doctrine\Common\Annotations\AnnotationReader
-     */
-    public static function getAnnotationsReader()
-    {
-        if (self::$_reader === null) {
-            self::$_reader = new \Doctrine\Common\Annotations\AnnotationReader(new \Doctrine\Common\Cache\ArrayCache());
-            self::$_reader->setEnableParsePhpImports(true);
-            self::$_reader->setDefaultAnnotationNamespace('RedpillLinpro\\GamineBundle\\Annotations\\');
-        }
-        return self::$_reader;
-    }
-
-    public function __construct($access_service, $gamine_service)
+    public function __construct($gamine_service, $entity_key, $access_service)
     {
         $this->access_service = $access_service;
         $this->gamine_service = $gamine_service;
-        $rc = new \ReflectionClass(get_called_class());
-        $resource_annotation = $this->getResourceAnnotation($rc);
-        if ($resource_annotation instanceof \RedpillLinpro\GamineBundle\Annotations\Resources) {
-            if ($resource_annotation->collection) {
-                $this->collection_resource = $resource_annotation->collection;
-            }
-            if ($resource_annotation->entity) {
-                $this->entity_resource = $resource_annotation->entity;
-            }
-        }
-        $model_annotation = $this->getModelAnnotation($rc);
-        if ($model_annotation instanceof \RedpillLinpro\GamineBundle\Annotations\Model) {
-            if ($model_annotation->name) {
-                $this->model = $model_annotation->name;
-            }
-        }
+        $this->entity_key = $entity_key;
     }
 
     /**
@@ -179,68 +153,24 @@ abstract class BaseManager
         return $this->gamine_service;
     }
 
-    /**
-     * @return RedpillLinpro\GamineBundle\Annotations\Resources
-     */
-    public function getResourceAnnotation($rc)
-    {
-        return self::getAnnotationsReader()->getClassAnnotation($rc, 'RedpillLinpro\\GamineBundle\\Annotations\\Resources');
-    }
-
-    /**
-     * Returns an Id annotation for a specified property if it exists
-     * 
-     * @param \ReflectionProperty $property
-     * 
-     * @return RedpillLinpro\GamineBundle\Annotations\Id
-     */
-    public function getIdAnnotation($property)
-    {
-        return self::getAnnotationsReader()->getPropertyAnnotation($property, 'RedpillLinpro\\GamineBundle\\Annotations\\Id');
-    }
-    
-    /**
-     * Returns a Column annotation for a specified property if it exists
-     * 
-     * @param \ReflectionProperty $property
-     * 
-     * @return RedpillLinpro\GamineBundle\Annotations\Column
-     */
-    public function getColumnAnnotation($property)
-    {
-        return self::getAnnotationsReader()->getPropertyAnnotation($property, 'RedpillLinpro\\GamineBundle\\Annotations\\Column');
-    }
-    
-    /**
-     * @return RedpillLinpro\GamineBundle\Annotations\Model
-     */
-    public function getModelAnnotation($rc)
-    {
-        return self::getAnnotationsReader()->getClassAnnotation($rc, 'RedpillLinpro\\GamineBundle\\Annotations\\Model');
-    }
-
     public function getCollectionResource()
     {
-        return $this->collection_resource;
+        return $this->getGamineService()->getCollectionResource($this->entity_key);
     }
 
     public function getEntityResource()
     {
-        return $this->entity_resource;
+        return $this->getGamineService()->getEntityResource($this->entity_key);
     }
 
     public function getModelClassname()
     {
-        return $this->model;
+        return $this->getGamineService()->getModelClassname($this->entity_key);
     }
 
     public function getInstantiatedModel()
     {
-        $classname = $this->getModelClassname();
-        $object = new $classname();
-        $object->injectGamineEntityManager($this);
-        
-        return $object;
+        return $this->getGamineService()->instantiateModel($this->entity_key);
     }
 
     public function findAll($params = array())
@@ -292,7 +222,7 @@ abstract class BaseManager
             throw new \InvalidArgumentException('This is not an object I can save, it must be of the same classname defined in this manager');
         }
 
-        $object->injectGamineEntityManager($this);
+        $object->injectGamineService($this->gamine_service, $this->entity_key);
         $is_new = !(bool) $object->getDataArrayIdentifierValue();
 
         $do_continue = true;

@@ -19,10 +19,12 @@ abstract class BaseModelAnnotation implements StorableObjectInterface
     protected static $_reader = null;
 
     /**
-     * @var \RedpillLinpro\GamineBundle\Manager\BaseManager
+     * @var \RedpillLinpro\GamineBundle\Gamine
      */
-    protected $_entitymanager = null;
-    
+    protected $_gamineservice = null;
+
+    protected $entity_key = null;
+
     /**
      * The original data that was passed to this entity via the data mapper
      *
@@ -33,25 +35,45 @@ abstract class BaseModelAnnotation implements StorableObjectInterface
     protected $_resource_location = null;
     protected $_resource_location_prefix = null;
 
+    public static function describe()
+    {
+        $reflection_class = new \ReflectionClass(get_called_class());
+        $reader = new \Doctrine\Common\Annotations\AnnotationReader(new \Doctrine\Common\Cache\ArrayCache());
+        $reader->setEnableParsePhpImports(true);
+        $reader->setDefaultAnnotationNamespace('RedpillLinpro\\GamineBundle\\Annotations\\');
+        $return_array = array();
+        foreach ($reflection_class->getProperties() as $property) {
+            $annotations = $reader->getPropertyAnnotations($property);
+            foreach ($annotations as $annotation) {
+                switch ($annotation->getKey()) {
+                    case 'id' :
+                        $return_array['primary_key'] = $property->name;
+                        break;
+                    default:
+                        $return_array['properties'][$property->name][$annotation->getKey()] = (array) $annotation;
+                }
+            }
+        }
+        return $return_array;
+    }
+
     /**
      * Called from the manager, populates the object with data from a response
      * Also passes the manager in, so a reference to it can be statically cached
      * for later calls (lazy-loading / auto-retrieving), etc.
      *
      * @param array $data
-     * @param \RedpillLinpro\GamineBundle\Manager\BaseManager $manager 
      */
     public function fromDataArray($data)
     {
         $this->_original_data = $data;
         $this->_dataArrayMap($data);
     }
-    
-    public function injectGamineEntityManager(\RedpillLinpro\GamineBundle\Manager\BaseManager $manager)
+
+    public function injectGamineService(\RedpillLinpro\GamineBundle\Gamine $gamine_service, $entity_key)
     {
-        if ($this->_entitymanager !== null) return;
-        
-        $this->_entitymanager = $manager;
+        $this->_gamineservice = $gamine_service;
+        $this->entity_key = $entity_key;
     }
 
     /**
@@ -94,14 +116,15 @@ abstract class BaseModelAnnotation implements StorableObjectInterface
      */
     public function getDataArrayIdentifierValue()
     {
-        return $this->{$this->_entitymanager->getDataArrayIdentifierProperty()};
+        $primary_key_property = $this->_gamineservice->getPrimaryKey($this->entity_key);
+        return $this->{$primary_key_property};
     }
-    
+
     public function hasDataArrayIdentifierValue()
     {
-        return $this->_entitymanager->hasDataArrayIdentifierProperty();
+        return $this->_gamineservice->getPrimaryKey($this->entity_key) !== null;
     }
-    
+
     /**
      * Set the unique identifier value for this object
      *
@@ -112,46 +135,10 @@ abstract class BaseModelAnnotation implements StorableObjectInterface
      */
     public function setDataArrayIdentifierValue($identifier_value)
     {
-        $property = $this->_entitymanager->getDataArrayIdentifierColumn();
-        $this->$property = $identifier_value;
+        $primary_key_property = $this->_gamineservice->getPrimaryKey($this->entity_key);
+        $this->{$primary_key_property} = $identifier_value;
     }
 
-    /**
-     * Returns an Id annotation for a specified property if it exists
-     * 
-     * @param \ReflectionProperty $property
-     * 
-     * @return RedpillLinpro\GamineBundle\Annotations\Id
-     */
-    public function getIdAnnotation($property)
-    {
-        return $this->_entitymanager->getAnnotationsReader()->getPropertyAnnotation($property, 'RedpillLinpro\\GamineBundle\\Annotations\\Id');
-    }
-    
-    /**
-     * Returns a Column annotation for a specified property if it exists
-     * 
-     * @param \ReflectionProperty $property
-     * 
-     * @return RedpillLinpro\GamineBundle\Annotations\Column
-     */
-    public function getColumnAnnotation($property)
-    {
-        return $this->_entitymanager->getAnnotationsReader()->getPropertyAnnotation($property, 'RedpillLinpro\\GamineBundle\\Annotations\\Column');
-    }
-
-    /**
-     * Returns a Relates annotation for a specified property if it exists
-     * 
-     * @param \ReflectionProperty $property
-     * 
-     * @return RedpillLinpro\GamineBundle\Annotations\Relates
-     */
-    public function getRelatesAnnotation($property)
-    {
-        return $this->_entitymanager->getAnnotationsReader()->getPropertyAnnotation($property, 'RedpillLinpro\\GamineBundle\\Annotations\\Relates');
-    }
-    
     public function setResourceLocationPrefix($rlp)
     {
         $this->_resource_location_prefix = $rlp;
@@ -166,7 +153,10 @@ abstract class BaseModelAnnotation implements StorableObjectInterface
     protected function _getResourceLocation()
     {
         if ($this->_resource_location === null) {
-            $this->_resource_location = str_replace('{:'.$this->_entitymanager->getDataArrayIdentifierColumn().'}', $this->{$this->_entitymanager->getDataArrayIdentifierProperty()}, $this->_entitymanager->getEntityResource());
+            $primary_key = $this->_gamineservice->getPrimaryKey($this->entity_key);
+            $entity = $this->_gamineservice->getEntityResource($this->entity_key);
+            $id = $this->{$primary_key};
+            $this->_resource_location = "/$entity/$id";
         }
         return $this->_resource_location_prefix . $this->_resource_location;
     }
@@ -208,110 +198,112 @@ abstract class BaseModelAnnotation implements StorableObjectInterface
 
         return $this->_entitymanager->getAccessService()->call($resource_route, 'DELETE', $post_params);
     }
-    
-    protected function _applyDataArrayProperty($property, $result, $extracted = null)
+
+    private function __populateSubModel(array $mapping, array $value = array())
     {
-        $id_annotation = ($this->_entitymanager->getDataArrayIdentifierProperty() !== null || $extracted !== null) ? null : $this->getIdAnnotation($property);
-        $column_annotation = ($extracted !== null) ? null : $this->getColumnAnnotation($property);
-        $relates_annotation = ($extracted !== null) ? null : $this->getRelatesAnnotation($property);
+        if (empty($value)) return null;
+        $model = $this->_gamineservice->instantiateModel($mapping['entity']);
+        $model->fromDataArray($value);
+        return $model;
+    }
 
-        if ($column_annotation !== null || $extracted !== null) {
-            if ($extracted !== null) {
-                if (array_key_exists($extracted, $result)) {
-                    $this->$property = $result[$extracted];
-                }
-            } else {
-                $name = ($column_annotation->name) ? $column_annotation->name : $property->name;
-                if (!array_key_exists($name, $result)) {
-                    return;
-                }
-                if ($extract_annotation = $this->_entitymanager->getAnnotationsReader()->getPropertyAnnotation($property, 'RedpillLinpro\\GamineBundle\\Annotations\\Extract')) {
+    protected function _applyDataArrayProperty($property, $mappings, $result, $extracted = null)
+    {
+        $result_key = (isset($mappings['column']['name']) && $mappings['column']['name']) ? $mappings['column']['name'] : $property;
 
-                    if (!$extract_annotation->hasColumns())
-                        throw new \Exception('No columns defined for the extract annotation');
+        if (!array_key_exists($result_key, $result)) return;
 
-                    foreach ($extract_annotation->columns as $column => $extract_to_property) {
-                        $this->_applyDataArrayProperty($extract_to_property, $result[$name], $column);
-                        if (!$extract_annotation->preserve_items) {
-                            unset($result[$name][$column]);
-                        }
-                    }
-                    $this->{$property->name} = $result[$name];
-                } else {
-                    if ($relates_annotation !== null && is_array($result[$name])) {
-                        if ($relates_annotation->manager) {
-                            $related_manager = $this->_entitymanager->getGamineService()->getClassManager($relates_annotation->manager);
-                        } else {
-                            $related_manager = null;
-                        }
-                        $this->_mapRelationData($property->name, $result[$name], $relates_annotation, $related_manager);
-                    } else {
-                        $this->{$property->name} = $result[$name];
+        // Extract
+        if (is_array($mappings) && array_key_exists('extract', $mappings)) {
+            foreach ($mappings['extract']['columns'] as $column => $extract_to_property) {
+                if (array_key_exists($column, $result[$result_key])) {
+                    $this->{$extract_to_property} = $result[$result_key][$column];
+                    if (!$mappings['extract']['preserve_items']) {
+                      //  unset($result[$result_key][$column]);
                     }
                 }
             }
+            if ($mappings['extract']['preserve_items'])
+                $this->{$property} = $result[$result_key];
+            return;
         }
+
+        // Sub model
+        if (is_array($mappings) && array_key_exists('sub_model', $mappings)) {
+            $value = $result[$result_key];
+            if ($mappings['sub_model']['collection']) {
+                $sub = array();
+                $key = $mappings['sub_model']['identifier'];
+                foreach ($value as $one) {
+                    $sub[$one[$key]] = $this->__populateSubModel($mappings['sub_model'], $one);
+                }
+                $this->{$property} = $sub;
+            } else {
+                $this->{$property} = $this->__populateSubModel($mappings['sub_model'], $value);
+            }
+            return;
+        }
+
+        // Relates
+        if (is_array($mappings) && array_key_exists('relates', $mappings)) {
+           // dd($property, $mappings, $result);
+            if ($mappings['relates']['entity']) {
+                $related_manager = $this->_gamineservice->getManager($mappings['relates']['entity']);
+            } else {
+                $related_manager = null;
+            }
+            $this->_mapRelationData($property, $result[$result_key], $mappings['relates']);
+            return;
+        }
+
+        $this->{$property} = $result[$result_key];
     }
 
     protected function _populateRelatedObject($property)
     {
         if (is_array($this->$property) || is_object($this->$property)) return;
-        
-        $reflected_property = $this->_entitymanager->getReflectedClass()->getProperty($property);
-        $relates_annotation = $this->getRelatesAnnotation($reflected_property);
-        $related_manager = $this->_entitymanager->getGamineService()->getClassManager($relates_annotation->manager);
-        if (!$related_manager instanceof \RedpillLinpro\GamineBundle\Manager\BaseManager)
-            throw new \Exception('The manager object must extend the gamine base manager class. Check that the manager= annotation has been correctly defined');
-            
-        $query_data = array();
-        if (is_numeric($this->$property)) {
-            $related_resource_location = str_replace('{:'.$related_manager->getDataArrayIdentifierColumn().'}', $this->$property, $relates_annotation->resource);
+
+        $mappings = $this->_gamineservice->getMappedProperty($this->entity_key, $property);
+
+        $primary_key = $this->_gamineservice->getPrimaryKey($this->entity_key);
+
+        $final_resource_location = '';
+        if ($mappings['relates']['relative']) {
+            $final_resource_location .= $this->_getResourceLocation();
+        }
+
+        if ($mappings['relates']['collection']) {
+            $final_resource_location .= '/'.$this->_gamineservice->getCollectionResource($mappings['relates']['entity']);
         } else {
-            $related_resource_location = $relates_annotation->resource;
+            // @todo 'related_by' annotation?
+            $final_resource_location .= '/'.$this->_gamineservice->getEntityResource($mappings['relates']['entity']) . '/'. $this->{$mappings['relates']['related_by']};
         }
-        $final_resource_location = ($relates_annotation->relative) ? $this->_getResourceLocation() . '/' . $this->getDataArrayIdentifierValue() . '/' . $related_resource_location : $related_resource_location;
-        if ($relates_annotation->related_by) {
-            if (is_array($relates_annotation->related_by)) {
-                foreach ($relates_annotation->related_by as $param => $val) {
-                    if ($val[0] == "$") {
-                        $val = substr($val, 1);
-                        $query_data[$param] = $this->$val;
-                    } else {
-                        $query_data[$param] = $val;
-                    }
-                }
-            } else {
-                $query_data[$param] = $this->$param;
-            }
-        }
-        $data = $related_manager->getAccessService()->call($final_resource_location, 'GET', $query_data);
-        
-        $this->_mapRelationData($property, $data, $relates_annotation, $related_manager);
+        $data = $this->_gamineservice->getManager($this->entity_key)->getAccessService()->call($final_resource_location, 'GET', array());
+        $this->_mapRelationData($property, $data, $mappings['relates']);
     }
-    
-    protected function _mapRelationData($property, $data, \RedpillLinpro\GamineBundle\Annotations\Relates $relates_annotation, $manager = null)
+
+    protected function _mapRelationData($property, $data, $mappings)
     {
-        if (!$manager) {
-            $value = $data;
-        } elseif ($relates_annotation->collection) {
-            $value = array();
+        if ($mappings['collection']) {
+            $models = array();
             foreach ($data as $single_result) {
-                $object = $manager->getInstantiatedModel();
-                $object->fromDataArray($single_result);
-                $object->setResourceLocationPrefix($this->_getResourceLocation() . "/");
-                if ($object->hasDataArrayIdentifierValue()) {
-                    $value[(string) $object->getDataArrayIdentifierValue()] = $object;
+                $related_model = $this->_gamineservice->instantiateModel($mappings['entity']);
+                $related_model->fromDataArray($single_result);
+                $related_model->setResourceLocationPrefix($this->_getResourceLocation() . "/");
+
+                if ($related_model->hasDataArrayIdentifierValue()) {
+                    $models[(string) $related_model->getDataArrayIdentifierValue()] = $related_model;
                 } else {
-                    $value[] = $object;
+                    $models[] = $object;
                 }
             }
+            $this->$property = $models;
         } else {
-            $value = $manager->getInstantiatedModel();
-            $value->fromDataArray($data);
-            $value->setResourceLocationPrefix($this->_getResourceLocation() . "/");
+            $related_model = $this->_gamineservice->instantiateModel($mappings['entity']);
+            $related_model->fromDataArray($data);
+            $related_model->setResourceLocationPrefix($this->_getResourceLocation() . "/");
+            $this->$property = $related_model;
         }
-        
-        $this->$property = $value;
     }
 
     protected function _extractDataArrayProperty($property, &$result, $extracted = null)
@@ -344,8 +336,8 @@ abstract class BaseModelAnnotation implements StorableObjectInterface
      */
     protected function _dataArrayMap($result)
     {
-        foreach ($this->_entitymanager->getReflectedClass()->getProperties() as $property) {
-            $this->_applyDataArrayProperty($property, $result);
+        foreach ($this->_gamineservice->getMappedProperties($this->entity_key) as $property => $mappings) {
+            $this->_applyDataArrayProperty($property, $mappings, $result);
         }
     }
 
@@ -356,7 +348,7 @@ abstract class BaseModelAnnotation implements StorableObjectInterface
         foreach ($this->_entitymanager->getReflectedClass()->getProperties() as $property) {
             $relates_annotation = $this->getRelatesAnnotation($property);
             $column_annotation = $this->getColumnAnnotation($property);
-            if ($relates_annotation && $relates_annotation->manager) {
+            if ($relates_annotation && $mappings['manager']) {
                 $c_name = ($column_annotation->name) ? $column_annotation->name : $property->name;
                 if (array_key_exists($c_name, $this->_original_data)) {
                     unset($this->_original_data[$c_name]);
