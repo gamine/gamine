@@ -297,6 +297,9 @@ abstract class BaseManager
         $is_new = !(bool) $object->getDataArrayIdentifierValue();
 
         $do_continue = true;
+        if (method_exists($object, 'beforeSave')) {
+            $object->beforeSave();
+        }
         if (method_exists($this, 'beforeSave')) {
             $do_continue = $this->beforeSave($object);
         }
@@ -310,6 +313,9 @@ abstract class BaseManager
                 $object->setDataArrayIdentifierValue($new_data[$this->getDataArrayIdentifierColumn()]);
             }
 
+            if (method_exists($object, 'afterSave')) {
+                $object->afterSave();
+            }
             if (method_exists($this, 'afterSave')) {
                 $this->afterSave($object, $is_new);
             }
