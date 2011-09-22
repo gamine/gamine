@@ -4,9 +4,13 @@ namespace RedpillLinpro\GamineBundle\Annotations;
 
 class Relates extends \Doctrine\Common\Annotations\Annotation
 {
-    public $manager;
+    public $entity;
     public $collection = false;
-    public $resource;
     public $relative = true;
     public $related_by;
+
+    public function getKey()
+    {
+        return 'relates';
+    }
 }

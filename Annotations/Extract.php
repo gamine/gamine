@@ -11,5 +11,9 @@ class Extract extends \Doctrine\Common\Annotations\Annotation
     {
         return (bool) !empty($this->columns);
     }
-    
+
+    public function getKey()
+    {
+        return 'extract';
+    }
 }
