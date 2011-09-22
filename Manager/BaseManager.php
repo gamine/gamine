@@ -194,8 +194,7 @@ abstract class BaseManager
         if (!$data) {
             return null;
         }
-
-        $object = $this->getInstantiatedModel();
+        $object = $this->gamine_service->instantiateModel($this->entity_key);
         $object->fromDataArray($data);
 
         return $object;
