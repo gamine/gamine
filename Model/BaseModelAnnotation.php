@@ -418,26 +418,33 @@ abstract class BaseModelAnnotation implements StorableObjectInterface
         }
     }
 
-    protected function _extractDataArrayProperty($property, &$result, $extracted = null)
+    protected function _extractDataArrayProperty($property, array $mappings, &$result)
     {
-        $column_annotation = ($extracted !== null) ? null : $this->_entitymanager->getAnnotationsReader()->getPropertyAnnotation($property, 'RedpillLinpro\\GamineBundle\\Annotations\\Column');
+        if (!array_key_exists('column', $mappings)) return;
 
-        if ($column_annotation !== null || $extracted !== null) {
-            if ($extracted !== null) {
-                $result[$extracted] = $this->$property;
-            } else {
-                $name = ($column_annotation->name) ? $column_annotation->name : $property->name;
-                if ($extract_annotation = $this->_entitymanager->getAnnotationsReader()->getPropertyAnnotation($property, 'RedpillLinpro\\GamineBundle\\Annotations\\Extract')) {
-                    $return_value = array();
-                    foreach ($extract_annotation->columns as $column => $extract_from_property) {
-                        $this->_extractDataArrayProperty($extract_from_property, $return_value, $column);
-                    }
-                    $result[$name] = $return_value;
-                } else {
-                    $result[$name] = $this->{$property->name};
-                }
+        $result_key = (isset($mappings['column']['name'])) ? $mappings['column']['name'] : $property;
+
+        if (array_key_exists('extract', $mappings)) {
+            $result[$result_key] = array();
+            foreach ($mappings['extract']['columns'] as $extracted_result_key => $extracted_property) {
+                $result[$result_key][$extracted_result_key] = $this->{$extracted_property};
             }
+            return;
         }
+
+        if (array_key_exists('sub_model', $mappings)) {
+            if ($mappings['sub_model']['collection']) {
+                $result[$result_key] = array();
+                foreach ($this->{$property} as $sub_model) {
+                    $result[$result_key][] = $sub_model->toDataArray();
+                }
+            } else {
+                $result[$result_key] = $this->{$property}->toDataArray();
+            }
+            return;
+        }
+
+        $result[$result_key] = $this->{$property};
     }
 
     /**
@@ -457,17 +464,9 @@ abstract class BaseModelAnnotation implements StorableObjectInterface
     {
         $result = array();
 
-        foreach ($this->_entitymanager->getReflectedClass()->getProperties() as $property) {
-            $relates_annotation = $this->getRelatesAnnotation($property);
-            $column_annotation = $this->getColumnAnnotation($property);
-            if ($relates_annotation && $mappings['manager']) {
-                $c_name = ($column_annotation->name) ? $column_annotation->name : $property->name;
-                if (array_key_exists($c_name, $this->_original_data)) {
-                    unset($this->_original_data[$c_name]);
-                }
-                continue;
-            }
-            $this->_extractDataArrayProperty($property, $result);
+        foreach ($this->_gamineservice->getMappedProperties($this->entity_key) as $property => $mappings) {
+            if (array_key_exists('relates', $mappings)) continue;
+            $this->_extractDataArrayProperty($property, $mappings, $result);
         }
 
         return $result;
