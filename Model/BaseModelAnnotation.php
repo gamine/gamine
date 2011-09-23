@@ -288,18 +288,25 @@ abstract class BaseModelAnnotation implements StorableObjectInterface
         return $model;
     }
 
-    protected function _applyDataArrayProperty($property, $mappings, &$result, $extracted = null)
+    /**
+     * Apply result on entity property through the mappings
+     *
+     * @param string $property
+     * @param array $mappings
+     * @param array $result
+     */
+    protected function _applyDataArrayProperty($property, $mappings, &$result)
     {
+        // Also, ignore this property if there are no valid annotation mappings
+        // meaning we will use the object's own default value for that property
+        if (!is_array($mappings)) return;
+
         // Figure out which key in the result array is the one we're looking for
         $result_key = (isset($mappings['column']['name']) && $mappings['column']['name']) ? $mappings['column']['name'] : $property;
 
         // Ignore this property if there is no matching $key in the result array,
         // meaning we will use the object's own default value for that property
         if (!array_key_exists($result_key, $result)) return;
-
-        // Also, ignore this property if there are no valid annotation mappings
-        // meaning we will use the object's own default value for that property
-        if (!is_array($mappings)) return;
 
         // Check to see if this property has an "Extract" annotation, in which
         // case we will take data from the result array and extract it into 
@@ -342,7 +349,11 @@ abstract class BaseModelAnnotation implements StorableObjectInterface
                 $key = (array_key_exists('identifier', $mappings['sub_model'])) ? $mappings['sub_model']['identifier'] : null;
                 foreach ($value as $one) {
                     $submodel = $this->__populateSubModel($mappings['sub_model'], $one);
-                    ($key) ? $submodels[$one[$key]] = $model : $submodels[] = $model;
+                    if ($key) {
+                        $submodels[$one[$key]] = $submodel;
+                    } else {
+                        $submodels[] = $submodel;
+                    }
                 }
                 $this->{$property} = $submodels;
             } else {
