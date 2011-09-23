@@ -380,17 +380,26 @@ abstract class BaseModelAnnotation implements StorableObjectInterface
 
         $primary_key = $this->_gamineservice->getPrimaryKeyProperty($this->entity_key);
 
+        $query = array();
         $final_resource_location = '';
         if ($mappings['relates']['relative']) {
-            $final_resource_location .= $this->_getResourceLocation();
+            $final_resource_location .= $this->_getResourceLocation() . '/';
+        } else {
+            $fkey = $mappings['relates']['related_by'];
+            $query = array($fkey => $this->getDataArrayIdentifierValue());
         }
 
         if ($mappings['relates']['collection']) {
-            $final_resource_location .= '/'.$this->_gamineservice->getCollectionResource($mappings['relates']['entity']);
+            $final_resource_location .= $this->_gamineservice->getCollectionResource($mappings['relates']['entity']);
         } else {
-            $final_resource_location .= '/'.$this->_gamineservice->getEntityResource($mappings['relates']['entity']) . '/'. $this->{$mappings['relates']['related_by']};
+            $entity_path = $this->_gamineservice->getEntityResource($mappings['relates']['entity']);
+            if (strpos($entity_path, '{:id}')) {
+                 $final_resource_location .= str_ireplace('{:id}', $this->getDataArrayIdentifierValue(), $entity_path);
+            } else {
+                 $final_resource_location .= $entity_path;
+            }
         }
-        $data = $this->_gamineservice->getManager($mappings['relates']['entity'])->getAccessService()->call($final_resource_location, 'GET', array());
+        $data = $this->_gamineservice->getManager($mappings['relates']['entity'])->getAccessService()->call($final_resource_location, 'GET', $query);
         $this->_mapRelationData($property, $data, $mappings['relates']);
     }
 
