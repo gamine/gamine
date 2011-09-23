@@ -38,16 +38,20 @@ abstract class BaseModelAnnotation implements StorableObjectInterface
         $reader->setDefaultAnnotationNamespace('RedpillLinpro\\GamineBundle\\Annotations\\');
         $return_array = array();
         foreach ($reflection_class->getProperties() as $property) {
+            $is_id = false;
             $annotations = $reader->getPropertyAnnotations($property);
             foreach ($annotations as $annotation) {
                 switch ($annotation->getKey()) {
                     case 'id' :
                         $return_array['primary_key']['property'] = $property->name;
-                        $return_array['primary_key']['key'] = ($annotation->name) ? $annotation->name : $property->name;
+                        $return_array['primary_key']['key'] = $property->name;
+                        $is_id = true;
                         break;
-                    default:
-                        $return_array['properties'][$property->name][$annotation->getKey()] = (array) $annotation;
                 }
+                $return_array['properties'][$property->name][$annotation->getKey()] = (array) $annotation;
+            }
+            if ($is_id && isset($return_array['properties'][$property->name]['column']['name'])) {
+                $return_array['primary_key']['key'] = $return_array['properties'][$property->name]['column']['name'];
             }
         }
         return $return_array;
