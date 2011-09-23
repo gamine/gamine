@@ -17,6 +17,4 @@ interface StorableObjectInterface
 
     public function toDataArray();
 
-    public static function getClassName();
-
 }

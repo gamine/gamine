@@ -14,11 +14,6 @@ abstract class BaseModelAnnotation implements StorableObjectInterface
 {
 
     /**
-     * @var \Doctrine\Common\Annotations\AnnotationReader
-     */
-    protected static $_reader = null;
-
-    /**
      * @var \RedpillLinpro\GamineBundle\Gamine
      */
     protected $_gamineservice = null;
@@ -352,18 +347,6 @@ abstract class BaseModelAnnotation implements StorableObjectInterface
             return;
         }
 
-        // Relates
-        if (array_key_exists('relates', $mappings)) {
-           // dd($property, $mappings, $result);
-            if ($mappings['relates']['entity']) {
-                $related_manager = $this->_gamineservice->getManager($mappings['relates']['entity']);
-            } else {
-                $related_manager = null;
-            }
-            $this->_mapRelationData($property, $result[$result_key], $mappings['relates']);
-            return;
-        }
-
         $this->{$property} = $result[$result_key];
     }
 
@@ -469,15 +452,4 @@ abstract class BaseModelAnnotation implements StorableObjectInterface
         return $result;
     }
 
-    static function getFormSetup()
-    {
-        return static::$model_setup;
-    }
-
-    static function getClassName()
-    {
-        return 'user';
-    }
-
 }
-
