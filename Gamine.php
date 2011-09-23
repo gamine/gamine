@@ -130,7 +130,7 @@ class Gamine
         return $this->_datasource_meta[$entity]['properties'][$property];
     }
 
-    public function getPrimaryKey($entity)
+    public function getPrimaryKeyProperty($entity)
     {
         if (!array_key_exists($entity, $this->_datasource_meta)) {
             $classname = $this->getModelClassname($entity);
@@ -139,7 +139,7 @@ class Gamine
         if (!array_key_exists('primary_key', $this->_datasource_meta[$entity]))
             throw new \Exception('Missing @Id on '. $entity);
 
-        return $this->_datasource_meta[$entity]['primary_key'];
+        return $this->_datasource_meta[$entity]['primary_key']['property'];
 
     }
 }

@@ -47,7 +47,8 @@ abstract class BaseModelAnnotation implements StorableObjectInterface
             foreach ($annotations as $annotation) {
                 switch ($annotation->getKey()) {
                     case 'id' :
-                        $return_array['primary_key'] = $property->name;
+                        $return_array['primary_key']['property'] = $property->name;
+                        $return_array['primary_key']['key'] = ($annotation->name) ? $annotation->name : $property->name;
                         break;
                     default:
                         $return_array['properties'][$property->name][$annotation->getKey()] = (array) $annotation;
@@ -116,7 +117,7 @@ abstract class BaseModelAnnotation implements StorableObjectInterface
      */
     public function getDataArrayIdentifierValue()
     {
-        $primary_key_property = $this->_gamineservice->getPrimaryKey($this->entity_key);
+        $primary_key_property = $this->_gamineservice->getPrimaryKeyProperty($this->entity_key);
         return $this->{$primary_key_property};
     }
 
@@ -135,7 +136,7 @@ abstract class BaseModelAnnotation implements StorableObjectInterface
      */
     public function setDataArrayIdentifierValue($identifier_value)
     {
-        $primary_key_property = $this->_gamineservice->getPrimaryKey($this->entity_key);
+        $primary_key_property = $this->_gamineservice->getPrimaryKeyProperty($this->entity_key);
         $this->{$primary_key_property} = $identifier_value;
     }
 
@@ -265,7 +266,7 @@ abstract class BaseModelAnnotation implements StorableObjectInterface
 
         $mappings = $this->_gamineservice->getMappedProperty($this->entity_key, $property);
 
-        $primary_key = $this->_gamineservice->getPrimaryKey($this->entity_key);
+        $primary_key = $this->_gamineservice->getPrimaryKeyProperty($this->entity_key);
 
         $final_resource_location = '';
         if ($mappings['relates']['relative']) {
