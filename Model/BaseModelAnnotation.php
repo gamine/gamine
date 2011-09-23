@@ -121,9 +121,14 @@ abstract class BaseModelAnnotation implements StorableObjectInterface
         return $this->{$primary_key_property};
     }
 
+    /**
+     * Checks to see if this object has an Id value, or if it is a new object
+     * 
+     * @return boolean
+     */
     public function hasDataArrayIdentifierValue()
     {
-        return $this->_gamineservice->getPrimaryKey($this->entity_key) !== null;
+        return (bool) $this->getDataArrayIdentifierValue();
     }
 
     /**
@@ -140,28 +145,56 @@ abstract class BaseModelAnnotation implements StorableObjectInterface
         $this->{$primary_key_property} = $identifier_value;
     }
 
+    /**
+     * Some entities' location url needs to be prefixed by an already existing
+     * url with information about a container id or parent id, unknown to this
+     * entity. Setting the resource location prefix will put this entity's own
+     * resource location under a containing resource
+     * 
+     * Ex: if this entity's resource location is "orders", and you set the 
+     * prefix to "user/11", the resulting unique resource location for this 
+     * entity will be "user/11/orders", whereas without a prefix, it will be
+     * just "orders" (always relative from the service's own defined root url)
+     * 
+     * @param string $rlp 
+     */
     public function setResourceLocationPrefix($rlp)
     {
         $this->_resource_location_prefix = $rlp;
     }
 
     /**
-     * Returns the resource location for this object, used when saving this
-     * object via the manager
+     * Returns the unique resource location for this entity, used when saving this
+     * entity via the manager, or when retrieving related objects
      *
      * @return string
      */
     protected function _getResourceLocation()
     {
+        if (!$this->hasDataArrayIdentifierValue())
+            throw new \Exception("This object does not have a unique resource location yet. Make sure it is being managed.");
+            
         if ($this->_resource_location === null) {
-            $primary_key = $this->_gamineservice->getPrimaryKey($this->entity_key);
             $entity = $this->_gamineservice->getEntityResource($this->entity_key);
-            $id = $this->{$primary_key};
+            $id = $this->getDataArrayIdentifierValue();
             $this->_resource_location = "/$entity/$id";
         }
         return $this->_resource_location_prefix . $this->_resource_location;
     }
 
+    /**
+     * Return an action resource for this entity, usually related to this 
+     * entity's resource location
+     * 
+     * Ex: "{entity_resource}/resetpassword"
+     * or: "{entity_resource}/credit/{amount}", where the amount can be passed
+     * in the $params array
+     * 
+     * @param string $routename
+     * @param array $params Key => value for any resource location parameters
+     * 
+     * @return string
+     */
     protected function getResourceByRoutename($routename, $params = array())
     {
         $resource = $this->_entitymanager->getResourceRoute($routename);
@@ -171,11 +204,35 @@ abstract class BaseModelAnnotation implements StorableObjectInterface
         return $resource;
     }
 
+    /**
+     * Perform an api get request via a resource route, used for calling actions
+     * where the return value isn't really of importance. The call is made as
+     * a GET request.
+     * 
+     * @see self::getResourceByRoutename
+     * 
+     * @param string $routename
+     * @param array $params
+     * 
+     * @return mixed Whatever is returned from the api endpoint
+     */
     protected function _apiCall($routename, $params = array())
     {
         return $this->_apiGet($routename, $params);
     }
 
+    /**
+     * Perform an api GET request to a resource route, used for calling actions
+     * on an entity where the endpoint return value is being checked in the
+     * following code.
+     * 
+     * @see self::getResourceByRoutename
+     * 
+     * @param string $routename
+     * @param array $params
+     * 
+     * @return mixed Whatever is returned from the api endpoint
+     */
     protected function _apiGet($routename, $params = array())
     {
         $resource_route = $this->getResourceByRoutename($routename, $params);
@@ -184,6 +241,17 @@ abstract class BaseModelAnnotation implements StorableObjectInterface
         return $this->_entitymanager->getAccessService()->call($resource_route);
     }
 
+    /**
+     * Perform an api POST request to a resource route, used for sending values
+     * to the endpoint resource.
+     * 
+     * @see self::getResourceByRoutename
+     * 
+     * @param string $routename
+     * @param array $params
+     * 
+     * @return mixed Whatever is returned from the api endpoint
+     */
     protected function _apiSet($routename, $params = array(), $post_params = array())
     {
         $resource_route = $this->getResourceByRoutename($routename, $params);
@@ -192,6 +260,17 @@ abstract class BaseModelAnnotation implements StorableObjectInterface
         return $this->_entitymanager->getAccessService()->call($resource_route, 'POST', $post_params);
     }
 
+    /**
+     * Performs a DELETE request on a resource location. Used to delete a 
+     * resource located at the specified endpoint location.
+     * 
+     * @see self::getResourceByRoutename
+     * 
+     * @param string $routename
+     * @param array $params
+     * 
+     * @return mixed Whatever is returned from the api endpoint
+     */
     protected function _apiUnset($routename, $params = array(), $post_params = array())
     {
         $resource_route = $this->getResourceByRoutename($routename, $params);
@@ -208,37 +287,63 @@ abstract class BaseModelAnnotation implements StorableObjectInterface
         return $model;
     }
 
-    protected function _applyDataArrayProperty($property, $mappings, $result, $extracted = null)
+    protected function _applyDataArrayProperty($property, $mappings, &$result, $extracted = null)
     {
+        // Figure out which key in the result array is the one we're looking for
         $result_key = (isset($mappings['column']['name']) && $mappings['column']['name']) ? $mappings['column']['name'] : $property;
 
+        // Ignore this property if there is no matching $key in the result array,
+        // meaning we will use the object's own default value for that property
         if (!array_key_exists($result_key, $result)) return;
 
-        // Extract
-        if (is_array($mappings) && array_key_exists('extract', $mappings)) {
+        // Also, ignore this property if there are no valid annotation mappings
+        // meaning we will use the object's own default value for that property
+        if (!is_array($mappings)) return;
+
+        // Check to see if this property has an "Extract" annotation, in which
+        // case we will take data from the result array and extract it into 
+        // other properties as well as the original property
+        if (array_key_exists('extract', $mappings)) {
+            
+            // Find all the columns (corresponds to an array key inside the 
+            // targetted $result[$key], and map this to properties
             foreach ($mappings['extract']['columns'] as $column => $extract_to_property) {
-                if (array_key_exists($column, $result[$result_key])) {
-                    $this->{$extract_to_property} = $result[$result_key][$column];
-                    if (!$mappings['extract']['preserve_items']) {
-                      //  unset($result[$result_key][$column]);
-                    }
-                }
+                
+                // Ignore this column key if it is not being provided in the result set
+                if (!array_key_exists($column, $result[$result_key])) continue;
+                
+                $this->{$extract_to_property} = $result[$result_key][$column];
+                
+                // If the preserve_items key is false, pick items *out* of the
+                // array when we extract it onto other properties
+                if (!$mappings['extract']['preserve_items']) 
+                    unset($result[$result_key][$column]);
             }
-            if ($mappings['extract']['preserve_items'])
-                $this->{$property} = $result[$result_key];
+            
+            // Always preserve the original data in the property where the
+            // annotation is placed
+            $this->{$property} = $result[$result_key];
             return;
         }
 
-        // Sub model
-        if (is_array($mappings) && array_key_exists('sub_model', $mappings)) {
+        // Check to see if this property has a "Submodel" annotation, in which
+        // case we will extract the property value into an instantiated object
+        if (array_key_exists('sub_model', $mappings)) {
             $value = $result[$result_key];
+            
+            // If the submodel is a collection of objects, we need to 
+            // instantiate more than one submodel entity
             if ($mappings['sub_model']['collection']) {
-                $sub = array();
-                $key = $mappings['sub_model']['identifier'];
+                $submodels = array();
+                
+                // Use the specified identifier as an array key, or none if not
+                // provided
+                $key = (array_key_exists('identifier', $mappings['sub_model'])) ? $mappings['sub_model']['identifier'] : null;
                 foreach ($value as $one) {
-                    $sub[$one[$key]] = $this->__populateSubModel($mappings['sub_model'], $one);
+                    $submodel = $this->__populateSubModel($mappings['sub_model'], $one);
+                    ($key) ? $submodels[$one[$key]] = $model : $submodels[] = $model;
                 }
-                $this->{$property} = $sub;
+                $this->{$property} = $submodels;
             } else {
                 $this->{$property} = $this->__populateSubModel($mappings['sub_model'], $value);
             }
@@ -246,7 +351,7 @@ abstract class BaseModelAnnotation implements StorableObjectInterface
         }
 
         // Relates
-        if (is_array($mappings) && array_key_exists('relates', $mappings)) {
+        if (array_key_exists('relates', $mappings)) {
            // dd($property, $mappings, $result);
             if ($mappings['relates']['entity']) {
                 $related_manager = $this->_gamineservice->getManager($mappings['relates']['entity']);
