@@ -29,17 +29,13 @@ abstract class BaseManager
      */
     protected $access_service;
 
+    /**
+     * The entity key this manager is instantiated as - matches available
+     * entity keys in the gamine entity config
+     * 
+     * @var string
+     */
     protected $entity_key;
-
-    /**
-     * @var \Doctrine\Common\Annotations\AnnotationReader
-     */
-    protected static $_reader = null;
-
-    /**
-     * @var \ReflectionClass
-     */
-    protected $_reflectedclass = null;
 
     protected $collection_resource;
     protected $entity_resource;
