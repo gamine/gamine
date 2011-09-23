@@ -365,8 +365,15 @@ abstract class BaseModelAnnotation implements StorableObjectInterface
         $this->{$property} = $result[$result_key];
     }
 
+    /**
+     * Populate a property that is supposed to contain an entity or collection
+     * of entities if it is not already populated
+     *
+     * @param mixed $property
+     */
     protected function _populateRelatedObject($property)
     {
+        // Don't populate the related object if it already is
         if (is_array($this->$property) || is_object($this->$property)) return;
 
         $mappings = $this->_gamineservice->getMappedProperty($this->entity_key, $property);
@@ -381,10 +388,9 @@ abstract class BaseModelAnnotation implements StorableObjectInterface
         if ($mappings['relates']['collection']) {
             $final_resource_location .= '/'.$this->_gamineservice->getCollectionResource($mappings['relates']['entity']);
         } else {
-            // @todo 'related_by' annotation?
             $final_resource_location .= '/'.$this->_gamineservice->getEntityResource($mappings['relates']['entity']) . '/'. $this->{$mappings['relates']['related_by']};
         }
-        $data = $this->_gamineservice->getManager($this->entity_key)->getAccessService()->call($final_resource_location, 'GET', array());
+        $data = $this->_gamineservice->getManager($mappings['relates']['entity'])->getAccessService()->call($final_resource_location, 'GET', array());
         $this->_mapRelationData($property, $data, $mappings['relates']);
     }
 
