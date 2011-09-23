@@ -65,9 +65,11 @@ abstract class BaseModelAnnotation implements StorableObjectInterface
      *
      * @param array $data
      */
-    public function fromDataArray($data)
+    public function fromDataArray($data, $set_original_data = true)
     {
-        $this->_original_data = $data;
+        if ($set_original_data) {
+            $this->_original_data = $data;
+        }
         $this->_dataArrayMap($data);
     }
 

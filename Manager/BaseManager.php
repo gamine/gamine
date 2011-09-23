@@ -218,33 +218,35 @@ abstract class BaseManager
         }
 
         $object->injectGamineService($this->gamine_service, $this->entity_key);
-        $is_new = !(bool) $object->getDataArrayIdentifierValue();
+        $is_new = $object->hasDataArrayIdentifierValue();
 
         $do_continue = true;
+        $result = false;
+
         if (method_exists($object, 'beforeSave')) {
-            $object->beforeSave();
+            $do_continue = $object->beforeSave();
         }
-        if (method_exists($this, 'beforeSave')) {
+        if ($do_continue && method_exists($this, 'beforeSave')) {
             $do_continue = $this->beforeSave($object);
         }
 
         if ($do_continue) {
             // Save can do both insert and update with MongoDB.
-            $new_data = $this->access_service->save($object, $this->getEntityResource());
-            $result = true;
-
-            if (isset($new_data[$this->getDataArrayIdentifierColumn()])) {
-                $object->setDataArrayIdentifierValue($new_data[$this->getDataArrayIdentifierColumn()]);
+            try {
+                $new_data = $this->access_service->save($object, $this->getEntityResource());
+                $result = true;
+            } catch (\VGS_Client_Exception $e) {
+                $result = false;
             }
+
+            $object->fromDataArray($new_data, false);
 
             if (method_exists($object, 'afterSave')) {
-                $object->afterSave();
+                $result = $object->afterSave($is_new, $result);
             }
             if (method_exists($this, 'afterSave')) {
-                $this->afterSave($object, $is_new);
+                $result = $this->afterSave($object, $is_new, $result);
             }
-        } else {
-            $result = false;
         }
 
         return $result;
