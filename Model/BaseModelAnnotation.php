@@ -84,9 +84,9 @@ abstract class BaseModelAnnotation implements StorableObjectInterface
      *
      * @return array
      */
-    public function toDataArray()
+    public function toDataArray($removeUnchanged = true)
     {
-        return $this->_extractToDataArray();
+        return $this->_extractToDataArray($removeUnchanged);
     }
 
     /**
@@ -427,33 +427,34 @@ abstract class BaseModelAnnotation implements StorableObjectInterface
         }
     }
 
-    protected function _extractDataArrayProperty($property, array $mappings, &$result)
+    protected function _extractDataArrayProperty($property, array $mappings, &$result, $removeUnchanged = true)
     {
         if (!array_key_exists('column', $mappings)) return;
-
         $result_key = (isset($mappings['column']['name'])) ? $mappings['column']['name'] : $property;
 
         if (array_key_exists('extract', $mappings)) {
             $result[$result_key] = array();
             foreach ($mappings['extract']['columns'] as $extracted_result_key => $extracted_property) {
-                $result[$result_key][$extracted_result_key] = $this->{$extracted_property};
+                if ($removeUnchanged && $this->_original_data[$result_key][$extracted_result_key] !== $this->{$extracted_property})
+                    $result[$result_key][$extracted_result_key] = $this->{$extracted_property};
             }
             return;
         }
-
         if (array_key_exists('sub_model', $mappings)) {
             if ($mappings['sub_model']['collection']) {
                 $result[$result_key] = array();
-                foreach ($this->{$property} as $sub_model) {
-                    $result[$result_key][] = $sub_model->toDataArray();
+                foreach ($this->{$property} as $k => $sub_model) {
+                    $result[$result_key][] = $sub_model->toDataArray(false);
                 }
             } else {
                 $result[$result_key] = $this->{$property}->toDataArray();
+                if ($removeUnchanged && empty($result[$result_key])) unset($result[$result_key]);
             }
             return;
         }
 
-        $result[$result_key] = $this->{$property};
+        if (!$removeUnchanged || !isset($this->_original_data[$result_key]) || $this->{$property} !== $this->_original_data[$result_key])
+            $result[$result_key] = $this->{$property};
     }
 
     /**
@@ -469,13 +470,16 @@ abstract class BaseModelAnnotation implements StorableObjectInterface
         }
     }
 
-    protected function _extractToDataArray()
+    protected function _extractToDataArray($removeUnchanged = true)
     {
         $result = array();
 
         foreach ($this->_gamineservice->getMappedProperties($this->entity_key) as $property => $mappings) {
             if (array_key_exists('relates', $mappings)) continue;
-            $this->_extractDataArrayProperty($property, $mappings, $result);
+            $this->_extractDataArrayProperty($property, $mappings, $result, $removeUnchanged);
+            if (empty($result[$property])) {
+                unset($result[$property]);
+            }
         }
 
         return $result;
