@@ -234,12 +234,13 @@ abstract class BaseManager
             // Save can do both insert and update with MongoDB.
             try {
                 $new_data = $this->access_service->save($object, $this->getEntityResource());
-                $result = true;
+                $result = is_array($new_data);
             } catch (\VGS_Client_Exception $e) {
                 $result = false;
             }
-
-            $object->fromDataArray($new_data, false);
+            if ($result) {
+                $object->fromDataArray($new_data, false);
+            }
 
             if (method_exists($object, 'afterSave')) {
                 $result = $object->afterSave($is_new, $result);
