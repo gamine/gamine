@@ -198,7 +198,7 @@ abstract class BaseModelAnnotation implements StorableObjectInterface
      */
     protected function getResourceByRoutename($routename, $params = array())
     {
-        $resource = $this->_entitymanager->getResourceRoute($routename);
+        $resource = $this->_gamineservice->getManager($this->entity_key)->getResourceRoute($routename);
         foreach ($params as $key => $value) {
             $resource = str_replace("{:{$key}}", $value, $resource);
         }
@@ -258,7 +258,7 @@ abstract class BaseModelAnnotation implements StorableObjectInterface
         $resource_route = $this->getResourceByRoutename($routename, $params);
         $resource_route = (substr($resource_route, 0, 1) == "/") ? $resource_route : $this->_getResourceLocation() . '/' . $resource_route;
 
-        return $this->_entitymanager->getAccessService()->call($resource_route, 'POST', $post_params);
+        return $this->_gamineservice->getManager($this->entity_key)->getAccessService()->call($resource_route, 'POST', $post_params);
     }
 
     /**
