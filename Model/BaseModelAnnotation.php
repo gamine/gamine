@@ -164,6 +164,11 @@ abstract class BaseModelAnnotation implements StorableObjectInterface
         $this->_resource_location_prefix = $rlp;
     }
 
+    public function getResourceLocationPrefix()
+    {
+        return $this->_resource_location_prefix;
+    }
+
     /**
      * Returns the unique resource location for this entity, used when saving this
      * entity via the manager, or when retrieving related objects
