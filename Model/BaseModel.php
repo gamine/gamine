@@ -10,7 +10,7 @@
 
 namespace RedpillLinpro\GamineBundle\Model;
 
-abstract class BaseModelAnnotation implements StorableObjectInterface
+abstract class BaseModel implements StorableObjectInterface
 {
 
     /**

@@ -210,7 +210,7 @@ abstract class BaseManager
         return $objects;
     }
 
-    public function save(\RedpillLinpro\GamineBundle\Model\BaseModelAnnotation $object)
+    public function save(\RedpillLinpro\GamineBundle\Model\BaseModel $object)
     {
         $classname = $this->getModelClassname();
         if (!$object instanceof $classname) {
