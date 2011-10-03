@@ -482,11 +482,7 @@ abstract class BaseModelAnnotation implements StorableObjectInterface
         foreach ($this->_gamineservice->getMappedProperties($this->entity_key) as $property => $mappings) {
             if (array_key_exists('relates', $mappings)) continue;
             $this->_extractDataArrayProperty($property, $mappings, $result, $removeUnchanged);
-            if (empty($result[$property])) {
-                unset($result[$property]);
-            }
         }
-
         return $result;
     }
 
