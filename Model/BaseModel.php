@@ -10,7 +10,7 @@
 
 namespace RedpillLinpro\GamineBundle\Model;
 
-abstract class BaseModelAnnotation implements StorableObjectInterface
+abstract class BaseModel implements StorableObjectInterface
 {
 
     /**
@@ -243,7 +243,6 @@ abstract class BaseModelAnnotation implements StorableObjectInterface
     {
         $resource_route = $this->getResourceByRoutename($routename, $params);
         $resource_route = (substr($resource_route, 0, 1) == "/") ? $resource_route : $this->_getResourceLocation() . '/' . $resource_route;
-        dd($resource_route);
         return $this->_entitymanager->getAccessService()->call($resource_route);
     }
 
