@@ -13,6 +13,8 @@ namespace RedpillLinpro\GamineBundle\Model;
 interface StorableObjectInterface
 {
 
+    public static function describe();
+
     public function fromDataArray($data);
 
     public function toDataArray();
