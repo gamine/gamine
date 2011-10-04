@@ -124,6 +124,7 @@ abstract class BaseModel implements StorableObjectInterface
             $describe = static::describe();
             $primary_key_property = $describe['primary_key']['property'];
         }
+
         return $this->{$primary_key_property};
     }
 
@@ -290,7 +291,6 @@ abstract class BaseModel implements StorableObjectInterface
     {
         $resource_route = $this->getResourceByRoutename($routename, $params);
         $resource_route = (substr($resource_route, 0, 1) == "/") ? $resource_route : $this->_getResourceLocation() . '/' . $resource_route;
-
         return $this->_gamineservice->getManager($this->entity_key)->getAccessService()->call($resource_route, 'POST', $post_params);
     }
 
@@ -309,7 +309,6 @@ abstract class BaseModel implements StorableObjectInterface
     {
         $resource_route = $this->getResourceByRoutename($routename, $params);
         $resource_route = (substr($resource_route, 0, 1) == "/") ? $resource_route : $this->_getResourceLocation() . '/' . $resource_route;
-
         return $this->_entitymanager->getAccessService()->call($resource_route, 'DELETE', $post_params);
     }
 
