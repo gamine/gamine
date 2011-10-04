@@ -118,7 +118,12 @@ abstract class BaseModel implements StorableObjectInterface
      */
     public function getDataArrayIdentifierValue()
     {
-        $primary_key_property = $this->_gamineservice->getPrimaryKeyProperty($this->entity_key);
+        if ($this->_gamineservice && method_exists($this->_gamineservice, 'getPrimaryKeyProperty'))
+            $primary_key_property = $this->_gamineservice->getPrimaryKeyProperty($this->entity_key);
+        else {
+            $describe = static::describe();
+            $primary_key_property = $describe['primary_key']['property'];
+        }
         return $this->{$primary_key_property};
     }
 
@@ -142,7 +147,12 @@ abstract class BaseModel implements StorableObjectInterface
      */
     public function setDataArrayIdentifierValue($identifier_value)
     {
-        $primary_key_property = $this->_gamineservice->getPrimaryKeyProperty($this->entity_key);
+        if ($this->_gamineservice && method_exists($this->_gamineservice, 'getPrimaryKeyProperty'))
+            $primary_key_property = $this->_gamineservice->getPrimaryKeyProperty($this->entity_key);
+        else {
+            $describe = static::describe();
+            $primary_key_property = $describe['primary_key']['property'];
+        }
         $this->{$primary_key_property} = $identifier_value;
     }
 
