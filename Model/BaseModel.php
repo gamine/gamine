@@ -191,11 +191,30 @@ abstract class BaseModel implements StorableObjectInterface
             throw new \Exception("This object does not have a unique resource location yet. Make sure it is being managed.");
             
         if ($this->_resource_location === null) {
-            $entity = $this->_gamineservice->getEntityResource($this->entity_key);
+            $entity = $this->getEntityResource();
             $id = $this->getDataArrayIdentifierValue();
             $this->_resource_location = "/$entity/$id";
         }
         return $this->_resource_location_prefix . $this->_resource_location;
+    }
+
+    /**
+     * Returns the string representation of the resource, be it db or api endpoint.
+     * Will use entity_key on gamine service if set, will generate from model class name if not
+     *
+     * @return string
+     */
+    public function getEntityResource()
+    {
+        if (!$this->entity_key) {
+            $classarr = explode('\\', get_called_class());
+            $class = array_pop($classarr);
+            $this->entity_key = strtolower($class);
+        }
+        if ($this->_gamineservice)
+            return $this->_gamineservice->getEntityResource($this->entity_key);
+        else
+            return $this->entity_key;
     }
 
     /**
