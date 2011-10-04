@@ -97,7 +97,7 @@ abstract class BaseModel implements StorableObjectInterface
      */
     public function getModifiedDataArray()
     {
-        $new_data = $this->_extractToDataArray();
+        $new_data = $this->_extractToDataArray(false);
         $diff_data = array();
         foreach ($new_data as $field => $value) {
             if (!array_key_exists($field, $this->_original_data) && $value === null) continue;
@@ -387,7 +387,7 @@ abstract class BaseModel implements StorableObjectInterface
                         $submodels[] = $submodel;
                     }
                 }
-                $this->{$property} = $submodels;
+                $this->{$property} = $submodels ?: $value;
             } else {
                 $this->{$property} = $this->__populateSubModel($mappings['sub_model'], $value);
             }
@@ -469,15 +469,19 @@ abstract class BaseModel implements StorableObjectInterface
             foreach ($mappings['extract']['columns'] as $extracted_result_key => $extracted_property) {
                 if ($removeUnchanged && $this->_original_data[$result_key][$extracted_result_key] !== $this->{$extracted_property})
                     $result[$result_key][$extracted_result_key] = $this->{$extracted_property};
+                elseif (!$removeUnchanged)
+                    $result[$result_key][$extracted_result_key] = $this->{$extracted_property};
             }
             return;
         }
         if (array_key_exists('sub_model', $mappings)) {
             if ($mappings['sub_model']['collection']) {
                 $result[$result_key] = array();
+                if ($this->{$property})
                 foreach ($this->{$property} as $k => $sub_model) {
                     $result[$result_key][] = $sub_model->toDataArray(false);
                 }
+                if (empty($result[$result_key])) $result[$result_key] = null;
             } else {
                 $result[$result_key] = $this->{$property}->toDataArray();
                 if ($removeUnchanged && empty($result[$result_key])) unset($result[$result_key]);
@@ -497,7 +501,13 @@ abstract class BaseModel implements StorableObjectInterface
      */
     protected function _dataArrayMap($result)
     {
-        foreach ($this->_gamineservice->getMappedProperties($this->entity_key) as $property => $mappings) {
+        if ($this->_gamineservice)
+            $mapped_properties = $this->_gamineservice->getMappedProperties($this->entity_key);
+        else {
+            $desc = static::describe();
+            $mapped_properties = $desc['properties'];
+        }
+        foreach ($mapped_properties as $property => $mappings) {
             $this->_applyDataArrayProperty($property, $mappings, $result);
         }
     }
@@ -506,7 +516,14 @@ abstract class BaseModel implements StorableObjectInterface
     {
         $result = array();
 
-        foreach ($this->_gamineservice->getMappedProperties($this->entity_key) as $property => $mappings) {
+        if ($this->_gamineservice)
+            $mapped_properties = $this->_gamineservice->getMappedProperties($this->entity_key);
+        else {
+            $desc = static::describe();
+            $mapped_properties = $desc['properties'];
+        }
+
+        foreach ($mapped_properties as $property => $mappings) {
             if (array_key_exists('relates', $mappings)) continue;
             $this->_extractDataArrayProperty($property, $mappings, $result, $removeUnchanged);
         }

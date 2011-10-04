@@ -24,7 +24,7 @@ class MockModel extends \RedpillLinpro\GamineBundle\Model\BaseModel
     public $firstName;
     public $lastName;
 
-    public $bleh = "stuff";
+    public $bleh;
     
     /**
      * @Column

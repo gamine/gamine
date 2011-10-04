@@ -1,6 +1,5 @@
 <?php
 
-
 namespace RedpillLinpro\GamineBundle\Tests\Cases\Model;
 
 use RedpillLinpro\GamineBundle\Tests\Mocks\Model\MockModel;
@@ -78,5 +77,63 @@ class BaseModelTest extends \PHPUnit_Framework_TestCase
         $this->assertEquals($expected, $result);
     }
 
+    public function testFromDataArray()
+    {
+        $data = array(
+            'id' => 123,
+            'title' => 'Hello world',
+            'names' => array('first' => 'alek', 'last' => 'mor'),
+            'bleh' => 'HEH'
+        );
+        $model = new MockModel();
+        $model->fromDataArray($data);
+
+        $this->assertEquals(123, $model->mock_id);
+        $this->assertEquals('Hello world', $model->title);
+        $this->assertEquals(array(), $model->names);
+        $this->assertEquals('alek', $model->firstName);
+        $this->assertEquals('mor', $model->lastName);
+        $this->assertEquals(null, $model->bleh);
+        $this->assertEquals('transient', $model->trans);
+        $this->assertEquals(null, $model->subber);
+        $this->assertEquals(null, $model->mother);
+    }
+
+    public function testToDataArray()
+    {
+        $model = new MockModel();
+        $model->mock_id = 123;
+        $model->title = 'Hello world';
+        $model->names = array();
+        $model->firstName = 'Key';
+        $model->lastName = 'West';
+
+        $expected = array(
+            'id' => 123,
+            'title' => 'Hello world',
+            'names' =>array('first' => 'Key', 'last' => 'West'),
+            'subber' => null
+        );
+        $result = $model->toDataArray(false);
+        $this->assertEquals($expected, $result);
+    }
+
+    public function testModifiedData()
+    {
+        $data = array(
+            'id' => 123,
+            'title' => 'Hello world',
+            'names' => array('first' => 'alek', 'last' => 'mor'),
+            'bleh' => 'HEH',
+        );
+        $model = new MockModel();
+        $model->fromDataArray($data);
+
+        $model->title = 'New title';
+
+        $expected = array('title' => array('from' => 'Hello world', 'to' => 'New title'));
+        $result = $model->getModifiedDataArray();
+        $this->assertEquals($expected, $result);
+    }
 
 }
