@@ -41,6 +41,7 @@ abstract class BaseModel implements StorableObjectInterface
             $is_id = false;
             $annotations = $reader->getPropertyAnnotations($property);
             foreach ($annotations as $annotation) {
+                if (!method_exists($annotation, 'getKey')) continue;
                 switch ($annotation->getKey()) {
                     case 'id' :
                         $return_array['primary_key']['property'] = $property->name;
