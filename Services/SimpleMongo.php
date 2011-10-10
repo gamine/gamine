@@ -19,11 +19,9 @@ class SimpleMongo implements ServiceInterface
     public function __construct($options = array())
     {
         $conn_string = 'mongodb://';
-        if (array_key_exists('dbusername', $options)) {
+        if ($options['dbusername'] != '') {
             $conn_string .= $options['dbusername'];
-            if (array_key_exists('dbpassword', $options)) {
                 $conn_string .= ':'.$options['dbpassword'];
-            }
             $conn_string .= '@';
         }
         $conn_string .= $options['dbhost'];
