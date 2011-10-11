@@ -98,10 +98,17 @@ class SimpleMongo implements ServiceInterface
 
     public function findAll($collection, $params = array())
     {
+        $limit = false;
+        if (array_key_exists('limit', $params)) {
+            $limit = $params['limit'];
+            unset($params['limit']);
+        }
         $retarr = array();
         $results = $this->mongodb->$collection->find($params);
         // $this->mongodb->$collection->find() as $data)
+        $count = 0;
         foreach (iterator_to_array($results) as $data) {
+            if ($limit && ++$count > ($limit) ) break;
             $data['id'] = $data['_id'];
             unset($data['_id']);
             $retarr[] = $data;
