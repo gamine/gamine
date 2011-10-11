@@ -93,30 +93,4 @@ class IdAnnotationTest extends \PHPUnit_Framework_TestCase
         $this->assertEquals(1, $model->getDataArrayIdentifierValue(), 'Alternate id extration not working properly');
     }
 
-//    public function testMissingRegularColumn()
-//    {
-//        $data = array(
-//            'title' => '',
-//            'realname' => 'My Real Name'
-//            );
-//
-//        $model = new MockModel();
-//        $model->fromDataArray($data);
-//        $this->assertEquals('', $model->title, 'Standard column annotation not working properly when omitted');
-//        $this->assertEquals('My Real Name', $model->my_real_name, 'Column annotation with alternate name not working properly when omitted');
-//    }
-//
-//    public function testMissingAlternateNameColumn()
-//    {
-//        $data = array(
-//            'title' => 'My title',
-//            'realname' => ''
-//            );
-//
-//        $model = new MockModel();
-//        $model->fromDataArray($data);
-//        $this->assertEquals('My title', $model->title, 'Standard column annotation not working properly when omitted');
-//        $this->assertEquals('', $model->my_real_name, 'Column annotation with alternate name not working properly when omitted');
-//    }
-
 }
