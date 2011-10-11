@@ -1,6 +1,6 @@
 <?php
 
-namespace RedpillLinpro\GamineBundle\Tests\Cases\Model;
+namespace RedpillLinpro\GamineBundle\Tests\Cases\Annotation;
 
 use RedpillLinpro\GamineBundle\Tests\Mocks\Annotations\MockColumnAnnotatedModel as MockModel;
 
