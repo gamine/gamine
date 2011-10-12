@@ -462,7 +462,7 @@ abstract class BaseModel implements StorableObjectInterface
 
     protected function _extractDataArrayProperty($property, array $mappings, &$result, $removeUnchanged = true)
     {
-        if (!array_key_exists('column', $mappings)) return;
+        if (!array_key_exists('column', $mappings) || array_key_exists('readonly', $mappings)) return;
         $result_key = (isset($mappings['column']['name'])) ? $mappings['column']['name'] : $property;
 
         if (array_key_exists('extract', $mappings)) {

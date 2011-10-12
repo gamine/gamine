@@ -31,9 +31,13 @@ class Gamine
     protected function _initBackend($backend)
     {
         if (!array_key_exists($backend, $this->_backendsconfig))
-            throw new Exception('This backend has not been configured. Please check your services configuration.');
+            throw new \InvalidArgumentException('This backend has not been configured. Please check your services configuration.');
 
         $classname = $this->_backendsconfig[$backend]['class'];
+
+        if (!class_exists($classname))
+            throw new \UnexpectedValueException("The class this backend depends on ({$classname}) does not exist in this scope. Please check your services configuration.");
+
         $this->_backends[$backend] = new $classname($this->_backendsconfig[$backend]['arguments']);
     }
 
@@ -49,15 +53,23 @@ class Gamine
         if (!array_key_exists($backend, $this->_backends)) {
             $this->_initBackend($backend);
         }
+
+        if (!array_key_exists($backend, $this->_backends))
+            throw new \RuntimeException("This backend ({$backend}) did not instantiate properly. Please check your services configuration.");
+
         return $this->_backends[$backend];
     }
 
     protected function _initManager($entity)
     {
         if (!array_key_exists($entity, $this->_entityconfigs))
-            throw new Exception('This manager has not been configured. Please check your services configuration.');
+            throw new \InvalidArgumentException('This manager has not been configured. Please check your services configuration.');
 
         $classname = $this->_entityconfigs[$entity]['manager']['class'];
+
+        if (!class_exists($classname))
+            throw new \UnexpectedValueException("The class this manager depends on ({$classname}) does not exist in this scope. Please check your services configuration.");
+        
         $this->_managers[$entity] = new $classname($this, $entity, $this->getBackend($this->_entityconfigs[$entity]['manager']['arguments']['access_service']));
     }
 
@@ -73,6 +85,10 @@ class Gamine
         if (!array_key_exists($entity, $this->_managers)) {
             $this->_initManager($entity);
         }
+
+        if (!array_key_exists($entity, $this->_managers))
+            throw new \RuntimeException("This manager for this entity ({$entity}) did not instantiate properly. Please check your services configuration.");
+                
         return $this->_managers[$entity];
     }
 
@@ -89,7 +105,7 @@ class Gamine
     public function getCollectionResource($entity)
     {
         if (!isset($this->_entityconfigs[$entity]['collection']))
-            throw new Exception('Missing collection configuration. Please check your services configuration.');
+            throw new \Exception('Missing collection configuration. Please check your services configuration.');
 
         return $this->_entityconfigs[$entity]['collection'];
     }
@@ -97,7 +113,7 @@ class Gamine
     public function getEntityResource($entity)
     {
         if (!isset($this->_entityconfigs[$entity]['entity']))
-            throw new Exception('Missing entity configuration. Please check your services configuration.');
+            throw new \Exception('Missing entity configuration. Please check your services configuration.');
 
         return $this->_entityconfigs[$entity]['entity'];
     }
@@ -105,7 +121,7 @@ class Gamine
     public function getModelClassname($entity)
     {
         if (!isset($this->_entityconfigs[$entity]['model']['class']))
-            throw new Exception('Missing model class configuration. Please check your services configuration.');
+            throw new \Exception('Missing model class configuration. Please check your services configuration.');
 
         return $this->_entityconfigs[$entity]['model']['class'];
     }
