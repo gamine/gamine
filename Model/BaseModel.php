@@ -380,12 +380,14 @@ abstract class BaseModel implements StorableObjectInterface
                 // Use the specified identifier as an array key, or none if not
                 // provided
                 $key = (array_key_exists('identifier', $mappings['sub_model'])) ? $mappings['sub_model']['identifier'] : null;
-                foreach ($value as $one) {
-                    $submodel = $this->__populateSubModel($mappings['sub_model'], $one);
-                    if ($key) {
-                        $submodels[$one[$key]] = $submodel;
-                    } else {
-                        $submodels[] = $submodel;
+                if ($value) {
+                    foreach ($value as $one) {
+                        $submodel = $this->__populateSubModel($mappings['sub_model'], $one);
+                        if ($key) {
+                            $submodels[$one[$key]] = $submodel;
+                        } else {
+                            $submodels[] = $submodel;
+                        }
                     }
                 }
                 $this->{$property} = $submodels ?: $value;
