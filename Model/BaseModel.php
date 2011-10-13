@@ -428,6 +428,8 @@ abstract class BaseModel implements StorableObjectInterface
             $entity_path = $this->_gamineservice->getEntityResource($mappings['relates']['entity']);
             if (strpos($entity_path, '{:id}')) {
                  $final_resource_location .= str_ireplace('{:id}', $this->getDataArrayIdentifierValue(), $entity_path);
+            } elseif ($mappings['relates']['related_by']) {
+                 $final_resource_location .= $entity_path . '/' . $query[$fkey];
             } else {
                  $final_resource_location .= $entity_path;
             }
