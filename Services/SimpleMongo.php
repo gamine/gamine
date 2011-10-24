@@ -49,7 +49,7 @@ class SimpleMongo implements ServiceInterface
         if (isset($data['id']))
         {
             $mongo_id = new \MongoId($data['id']);
-            // Back 
+            // Back
             unset($data['id']);
             $mongo_collection->update(array('_id' => $mongo_id), $data);
             // and Forth
@@ -91,7 +91,7 @@ class SimpleMongo implements ServiceInterface
         $mongo_collection = $this->mongodb->$collection;
 
         $mid = new \MongoId($id);
-        return $mongo_collection->remove(array('_id' => $mid), 
+        return $mongo_collection->remove(array('_id' => $mid),
                 array('justOne' => true));
     }
 
@@ -114,7 +114,7 @@ class SimpleMongo implements ServiceInterface
         }
         return $retarr;
     }
-    
+
     public function findOneById($collection, $id, $params = array())
     {
         $data = $this->mongodb->$collection->findOne(
@@ -124,7 +124,7 @@ class SimpleMongo implements ServiceInterface
         unset($data['_id']);
         return $data;
     }
-    
+
     public function findOneByKeyVal($collection, $key, $val, $params = array())
     {
         $data = $this->mongodb->$collection->findOne(array($key => $val));
@@ -132,17 +132,17 @@ class SimpleMongo implements ServiceInterface
         unset($data['_id']);
         return $data;
     }
-    
+
     public function findByKeyVal($collection, $key, $val, $params = array())
     {
         $retarr = array();
-    
-        // PHPs Mongodb thingie has an issue with numbers, it quotes them 
+
+        // PHPs Mongodb thingie has an issue with numbers, it quotes them
         // unless it is explocitly typecasted or manipulated in math context.
         if (is_numeric($val)) {
             $val = $val * 1;
         }
-    
+
         $cursor = $this->mongodb->$collection->find(array($key => $val));
         // Since I am cooking rigth from php.net I'll use while here:
         while ($cursor->hasNext()) {
