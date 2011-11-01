@@ -279,4 +279,10 @@ abstract class BaseManager
         return $status;
     }
 
+    protected function _getPayload($result) {
+        if (is_array($result) && isset($result['data'])) {
+            return $result['data'];
+        }
+        return $result;
+    }
 }
