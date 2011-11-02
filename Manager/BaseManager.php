@@ -10,6 +10,7 @@
 namespace RedpillLinpro\GamineBundle\Manager;
 
 use \Exception;
+use \RedpillLinpro\GamineBundle\Exceptions\ValidationError;
 
 abstract class BaseManager
 {
@@ -237,6 +238,10 @@ abstract class BaseManager
                 $result = is_array($new_data);
             } catch (\VGS_Client_Exception $e) {
                 $result = false;
+            } catch (ValidationError $e) {
+                $result = false;
+                $error = $e->getError();
+                $object->setValidationErrors($error['description'], $e->getData());
             }
             if ($result) {
                 $object->fromDataArray($new_data, false);

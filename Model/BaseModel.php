@@ -30,6 +30,9 @@ abstract class BaseModel implements StorableObjectInterface
     protected $_resource_location = null;
     protected $_resource_location_prefix = null;
 
+    protected $_validation_message;
+    protected $_validation_errors;
+
     public static function describe()
     {
         $reflection_class = new \ReflectionClass(get_called_class());
@@ -535,4 +538,19 @@ abstract class BaseModel implements StorableObjectInterface
         return $result;
     }
 
+    public function setValidationErrors($message, $errors = array())
+    {
+        $this->_validation_message = $message;
+        $this->_validation_errors = $errors;
+    }
+
+    public function getValidationMessage()
+    {
+        return $this->_validation_message;
+    }
+
+    public function getValidationErrors()
+    {
+        return $this->_validation_errors;
+    }
 }
