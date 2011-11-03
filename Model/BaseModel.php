@@ -409,7 +409,7 @@ abstract class BaseModel implements StorableObjectInterface
      *
      * @param mixed $property
      */
-    protected function _populateRelatedObject($property)
+    protected function _populateRelatedObject($property, $params = array())
     {
         // Don't populate the related object if it already is
         if (is_array($this->$property) || is_object($this->$property)) return;
@@ -418,13 +418,13 @@ abstract class BaseModel implements StorableObjectInterface
 
         $primary_key = $this->_gamineservice->getPrimaryKeyProperty($this->entity_key);
 
-        $query = array();
+        $params = array();
         $final_resource_location = '';
         if ($mappings['relates']['relative']) {
             $final_resource_location .= $this->_getResourceLocation() . '/';
         } else {
             $fkey = $mappings['relates']['related_by'];
-            $query = array($fkey => $this->getDataArrayIdentifierValue());
+            $params[$fkey] = $this->getDataArrayIdentifierValue();
         }
 
         if ($mappings['relates']['collection']) {
@@ -434,12 +434,12 @@ abstract class BaseModel implements StorableObjectInterface
             if (strpos($entity_path, '{:id}')) {
                  $final_resource_location .= str_ireplace('{:id}', $this->getDataArrayIdentifierValue(), $entity_path);
             } elseif ($mappings['relates']['related_by']) {
-                 $final_resource_location .= $entity_path . '/' . $query[$fkey];
+                 $final_resource_location .= $entity_path . '/' . $params[$fkey];
             } else {
                  $final_resource_location .= $entity_path;
             }
         }
-        $data = $this->_gamineservice->getManager($mappings['relates']['entity'])->getAccessService()->call($final_resource_location, 'GET', $query);
+        $data = $this->_gamineservice->getManager($mappings['relates']['entity'])->getAccessService()->call($final_resource_location, 'GET', $params);
         $this->_mapRelationData($property, $data, $mappings['relates']);
     }
 
