@@ -418,7 +418,6 @@ abstract class BaseModel implements StorableObjectInterface
 
         $primary_key = $this->_gamineservice->getPrimaryKeyProperty($this->entity_key);
 
-        $params = array();
         $final_resource_location = '';
         if ($mappings['relates']['relative']) {
             $final_resource_location .= $this->_getResourceLocation() . '/';
