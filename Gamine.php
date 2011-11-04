@@ -118,8 +118,11 @@ class Gamine
 
         if (!class_exists($classname))
             throw new \UnexpectedValueException("The class this manager depends on ({$classname}) does not exist in this scope. Please check your services configuration.");
-        
-        $this->_managers[$entity] = new $classname($this, $entity, $this->getBackend($this->_entityconfigs[$entity]['manager']['arguments']['access_service']));
+
+        $entity_config = $this->_entityconfigs[$entity]['manager']['arguments'];
+        $options = isset($entity_config['cache_service']) ? array('cache_service' => $entity_config['cache_service']) : null;
+
+        $this->_managers[$entity] = new $classname($this, $entity, $this->getBackend($entity_config['access_service']), $options);
     }
 
     /**
