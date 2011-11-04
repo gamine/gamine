@@ -35,30 +35,7 @@ abstract class BaseModel implements StorableObjectInterface
 
     public static function describe()
     {
-        $reflection_class = new \ReflectionClass(get_called_class());
-        $reader = new \Doctrine\Common\Annotations\AnnotationReader(new \Doctrine\Common\Cache\ArrayCache());
-        $reader->setEnableParsePhpImports(true);
-        $reader->setDefaultAnnotationNamespace('RedpillLinpro\\GamineBundle\\Annotations\\');
-        $return_array = array();
-        foreach ($reflection_class->getProperties() as $property) {
-            $is_id = false;
-            $annotations = $reader->getPropertyAnnotations($property);
-            foreach ($annotations as $annotation) {
-                if (!method_exists($annotation, 'getKey')) continue;
-                switch ($annotation->getKey()) {
-                    case 'id' :
-                        $return_array['primary_key']['property'] = $property->name;
-                        $return_array['primary_key']['key'] = $property->name;
-                        $is_id = true;
-                        break;
-                }
-                $return_array['properties'][$property->name][$annotation->getKey()] = (array) $annotation;
-            }
-            if ($is_id && isset($return_array['properties'][$property->name]['column']['name'])) {
-                $return_array['primary_key']['key'] = $return_array['properties'][$property->name]['column']['name'];
-            }
-        }
-        return $return_array;
+        return \RedpillLinpro\GamineBundle\Gamine::describeClass(get_called_class());
     }
 
     /**
@@ -125,8 +102,8 @@ abstract class BaseModel implements StorableObjectInterface
         if ($this->_gamineservice && method_exists($this->_gamineservice, 'getPrimaryKeyProperty'))
             $primary_key_property = $this->_gamineservice->getPrimaryKeyProperty($this->entity_key);
         else {
-            $describe = static::describe();
-            $primary_key_property = $describe['primary_key']['property'];
+            $description = \RedpillLinpro\GamineBundle\Gamine::describeClass(get_called_class());
+            $primary_key_property = $description['primary_key']['property'];
         }
 
         return $this->{$primary_key_property};
@@ -155,8 +132,8 @@ abstract class BaseModel implements StorableObjectInterface
         if ($this->_gamineservice && method_exists($this->_gamineservice, 'getPrimaryKeyProperty'))
             $primary_key_property = $this->_gamineservice->getPrimaryKeyProperty($this->entity_key);
         else {
-            $describe = static::describe();
-            $primary_key_property = $describe['primary_key']['property'];
+            $description = \RedpillLinpro\GamineBundle\Gamine::describeClass(get_called_class());
+            $primary_key_property = $description['primary_key']['property'];
         }
         $this->{$primary_key_property} = $identifier_value;
     }
@@ -409,7 +386,7 @@ abstract class BaseModel implements StorableObjectInterface
      *
      * @param mixed $property
      */
-    protected function _populateRelatedObject($property)
+    protected function _populateRelatedObject($property, $params = array())
     {
         // Don't populate the related object if it already is
         if (is_array($this->$property) || is_object($this->$property)) return;
@@ -418,13 +395,12 @@ abstract class BaseModel implements StorableObjectInterface
 
         $primary_key = $this->_gamineservice->getPrimaryKeyProperty($this->entity_key);
 
-        $query = array();
         $final_resource_location = '';
         if ($mappings['relates']['relative']) {
             $final_resource_location .= $this->_getResourceLocation() . '/';
         } else {
             $fkey = $mappings['relates']['related_by'];
-            $query = array($fkey => $this->getDataArrayIdentifierValue());
+            $params[$fkey] = $this->getDataArrayIdentifierValue();
         }
 
         if ($mappings['relates']['collection']) {
@@ -434,12 +410,12 @@ abstract class BaseModel implements StorableObjectInterface
             if (strpos($entity_path, '{:id}')) {
                  $final_resource_location .= str_ireplace('{:id}', $this->getDataArrayIdentifierValue(), $entity_path);
             } elseif ($mappings['relates']['related_by']) {
-                 $final_resource_location .= $entity_path . '/' . $query[$fkey];
+                 $final_resource_location .= $entity_path . '/' . $params[$fkey];
             } else {
                  $final_resource_location .= $entity_path;
             }
         }
-        $data = $this->_gamineservice->getManager($mappings['relates']['entity'])->getAccessService()->call($final_resource_location, 'GET', $query);
+        $data = $this->_gamineservice->getManager($mappings['relates']['entity'])->getAccessService()->call($final_resource_location, 'GET', $params, false);
         $this->_mapRelationData($property, $data, $mappings['relates']);
     }
 
@@ -512,8 +488,8 @@ abstract class BaseModel implements StorableObjectInterface
         if ($this->_gamineservice)
             $mapped_properties = $this->_gamineservice->getMappedProperties($this->entity_key);
         else {
-            $desc = static::describe();
-            $mapped_properties = $desc['properties'];
+            $description = \RedpillLinpro\GamineBundle\Gamine::describeClass(get_called_class());
+            $mapped_properties = $description['properties'];
         }
         foreach ($mapped_properties as $property => $mappings) {
             $this->_applyDataArrayProperty($property, $mappings, $result);
@@ -527,8 +503,8 @@ abstract class BaseModel implements StorableObjectInterface
         if ($this->_gamineservice)
             $mapped_properties = $this->_gamineservice->getMappedProperties($this->entity_key);
         else {
-            $desc = static::describe();
-            $mapped_properties = $desc['properties'];
+            $description = \RedpillLinpro\GamineBundle\Gamine::describeClass(get_called_class());
+            $mapped_properties = $description['properties'];
         }
 
         foreach ($mapped_properties as $property => $mappings) {
