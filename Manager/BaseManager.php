@@ -14,12 +14,6 @@ use \RedpillLinpro\GamineBundle\Exceptions\ValidationError;
 
 abstract class BaseManager
 {
-    /*
-     * Remember to put these in the Manages extending this one.
-     * Right now they are all the same but I define different names here.
-     * Or rather, they have to be defined in the object extending this one.
-     */
-
     /**
      * @var \RedpillLinpro\GamineBundle\Gamine
      */
