@@ -415,7 +415,7 @@ abstract class BaseModel implements StorableObjectInterface
                  $final_resource_location .= $entity_path;
             }
         }
-        $data = $this->_gamineservice->getManager($mappings['relates']['entity'])->getAccessService()->call($final_resource_location, 'GET', $params);
+        $data = $this->_gamineservice->getManager($mappings['relates']['entity'])->getAccessService()->call($final_resource_location, 'GET', $params, false);
         $this->_mapRelationData($property, $data, $mappings['relates']);
     }
 
