@@ -463,7 +463,7 @@ abstract class BaseModel implements StorableObjectInterface
                 $result[$result_key] = array();
                 if ($this->{$property})
                 foreach ($this->{$property} as $k => $sub_model) {
-                    $result[$result_key][] = $sub_model->toDataArray(false);
+                    $result[$result_key][$k] = $sub_model->toDataArray(false);
                 }
                 if (empty($result[$result_key])) $result[$result_key] = null;
             } else {
