@@ -21,12 +21,18 @@ class Gamine
 
     protected $_managers = array();
     protected $_entityconfigs = array();
+    protected $_cache_enabled = false;
 
     public static function setCacheDirectory($cache_directory)
     {
         self::$_cache_directory = $cache_directory;
-        if (!file_exists($cache_directory)) {
-            mkdir($cache_directory);
+    }
+
+    protected function initCache()
+    {
+
+        if (!file_exists(self::$_cache_directory)) {
+            mkdir(self::$_cache_directory);
         }
     }
 
@@ -35,46 +41,56 @@ class Gamine
         return self::$_cache_directory;
     }
 
-    public static function describeClass($class)
+    public function describeClass($class)
     {
+        $return_array = null;
         if (self::$_cache_directory) {
             $filename = self::getCacheDirectory() . str_replace("\\", '_', $class) . '_description.cache.php';
             if (file_exists($filename)) {
                 $return_array = unserialize(file_get_contents($filename));
-            } else {
-                $reflection_class = new \ReflectionClass($class);
-                $reader = new \Doctrine\Common\Annotations\AnnotationReader(new \Doctrine\Common\Cache\ArrayCache());
-                $reader->setEnableParsePhpImports(true);
-                $reader->setDefaultAnnotationNamespace('RedpillLinpro\\GamineBundle\\Annotations\\');
-                $return_array = array();
-                foreach ($reflection_class->getProperties() as $property) {
-                    $is_id = false;
-                    $annotations = $reader->getPropertyAnnotations($property);
-                    foreach ($annotations as $annotation) {
-                        if (!method_exists($annotation, 'getKey')) continue;
-                        switch ($annotation->getKey()) {
-                            case 'id' :
-                                $return_array['primary_key']['property'] = $property->name;
-                                $return_array['primary_key']['key'] = $property->name;
-                                $is_id = true;
-                                break;
-                        }
-                        $return_array['properties'][$property->name][$annotation->getKey()] = (array) $annotation;
-                    }
-                    if ($is_id && isset($return_array['properties'][$property->name]['column']['name'])) {
-                        $return_array['primary_key']['key'] = $return_array['properties'][$property->name]['column']['name'];
-                    }
-                }
-                if (self::$_cache_directory) file_put_contents($filename, serialize($return_array));
             }
+        }
+        if($return_array === null) {
+            $reflection_class = new \ReflectionClass($class);
+            $reader = new \Doctrine\Common\Annotations\AnnotationReader(new \Doctrine\Common\Cache\ArrayCache());
+            $reader->setEnableParsePhpImports(true);
+            $reader->setDefaultAnnotationNamespace('RedpillLinpro\\GamineBundle\\Annotations\\');
+            $return_array = array();
+            foreach ($reflection_class->getProperties() as $property) {
+                $is_id = false;
+                $annotations = $reader->getPropertyAnnotations($property);
+                foreach ($annotations as $annotation) {
+                    if (!method_exists($annotation, 'getKey')) continue;
+                    switch ($annotation->getKey()) {
+                        case 'id' :
+                            $return_array['primary_key']['property'] = $property->name;
+                            $return_array['primary_key']['key'] = $property->name;
+                            $is_id = true;
+                            break;
+                    }
+                    $return_array['properties'][$property->name][$annotation->getKey()] = (array) $annotation;
+                }
+                if ($is_id && isset($return_array['properties'][$property->name]['column']['name'])) {
+                    $return_array['primary_key']['key'] = $return_array['properties'][$property->name]['column']['name'];
+                }
+            }
+            if (self::$_cache_directory) file_put_contents($filename, serialize($return_array));
         }
         return $return_array;
     }
 
-    public function __construct($backends = array(), $managers = array())
+    public function __construct($backends = array(), $managers = array(), $cache_enabled = false)
     {
         $this->_backendsconfig = $backends;
         $this->_entityconfigs = $managers;
+
+        if($cache_enabled){
+            self::initCache();
+        }else{
+            self::$_cache_directory = null;
+        }
+
+
     }
 
     protected function _initBackend($backend)
