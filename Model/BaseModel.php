@@ -491,6 +491,10 @@ abstract class BaseModel implements StorableObjectInterface
             $description = \RedpillLinpro\GamineBundle\Gamine::describeClass(get_called_class());
             $mapped_properties = $description['properties'];
         }
+
+        if (array_key_exists('primary_key', $mapped_properties) && !array_key_exists($result[$mapped_properties['primary_key']['key']]))
+            throw new \Exception('The result data returned from the endpoint is not formatted correctly (Could not find primary key in returned data)');
+
         foreach ($mapped_properties as $property => $mappings) {
             $this->_applyDataArrayProperty($property, $mappings, $result);
         }
