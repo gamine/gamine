@@ -463,10 +463,12 @@ abstract class BaseModel implements StorableObjectInterface
                 $result[$result_key] = array();
                 if ($this->{$property})
                 foreach ($this->{$property} as $k => $sub_model) {
+                    $sub_model->injectGamineService($this->_gamineservice, $mappings['sub_model']['entity']);
                     $result[$result_key][$k] = $sub_model->toDataArray(false);
                 }
                 if (empty($result[$result_key])) $result[$result_key] = null;
             } else {
+                $sub_model->injectGamineService($this->_gamineservice, $mappings['sub_model']['entity']);
                 $result[$result_key] = $this->{$property}->toDataArray();
                 if ($removeUnchanged && empty($result[$result_key])) unset($result[$result_key]);
             }
@@ -504,9 +506,9 @@ abstract class BaseModel implements StorableObjectInterface
     {
         $result = array();
 
-        if ($this->_gamineservice)
+        if ($this->_gamineservice){
             $mapped_properties = $this->_gamineservice->getMappedProperties($this->entity_key);
-        else {
+        }else {
             $description = \RedpillLinpro\GamineBundle\Gamine::describeClass(get_called_class());
             $mapped_properties = $description['properties'];
         }
