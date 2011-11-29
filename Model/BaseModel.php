@@ -492,7 +492,7 @@ abstract class BaseModel implements StorableObjectInterface
         }
 
         if (!$removeUnchanged || !isset($this->_original_data[$result_key]) || $this->{$property} !== $this->_original_data[$result_key])
-            $result[$result_key] = $this->{$property};
+            $result[$result_key] = (is_object($this->{$property}) && $this->{$property} instanceof \RedpillLinpro\GamineBundle\Model\StorableObjectInterface) ? $this->{$property}->getDataArrayIdentifierValue() : $this->{$property};
     }
 
     /**
@@ -530,7 +530,7 @@ abstract class BaseModel implements StorableObjectInterface
         }
 
         foreach ($mapped_properties as $property => $mappings) {
-            if (array_key_exists('relates', $mappings)) continue;
+            if (array_key_exists('relates', $mappings) && !array_key_exists('column', $mappings)) continue;
             $this->_extractDataArrayProperty($property, $mappings, $result, $removeUnchanged);
         }
         return $result;
