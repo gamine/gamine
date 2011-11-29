@@ -7,6 +7,7 @@ class SubModel extends \Doctrine\Common\Annotations\Annotation
     public $collection = false;
     public $entity;
     public $identifier;
+    public $extract_mode = 'full';
 
     public function getKey()
     {

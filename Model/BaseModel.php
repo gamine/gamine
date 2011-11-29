@@ -461,12 +461,28 @@ abstract class BaseModel implements StorableObjectInterface
         if (array_key_exists('sub_model', $mappings)) {
             if ($mappings['sub_model']['collection']) {
                 $result[$result_key] = array();
-                if ($this->{$property})
-                foreach ($this->{$property} as $k => $sub_model) {
-                    $sub_model->injectGamineService($this->_gamineservice, $mappings['sub_model']['entity']);
-                    $result[$result_key][$k] = $sub_model->toDataArray(false);
+                if (is_array($this->{$property})) {
+                    foreach ($this->{$property} as $k => $sub_model) {
+                        $sub_model->injectGamineService($this->_gamineservice, $mappings['sub_model']['entity']);
+                        $result[$result_key][$k] = $sub_model->toDataArray(false);
+                    }
+                    if (empty($result[$result_key])) {
+                        $result[$result_key] = null;
+                    } else {
+                        if ($mappings['sub_model']['extract_mode'] == 'min') {
+                            $pk = $this->_gamineservice->getPrimaryKeyProperty($mappings['sub_model']['entity']);
+                            foreach ($result[$result_key] as $k => $res) {
+                                $diff = array_diff_assoc($this->_original_data[$result_key][$k], $res);
+                                if (!count($diff)) {
+                                    $result[$result_key][$k] = array($pk => $sub_model->getDataArrayIdentifierValue());
+                                } else {
+                                    $diff[$pk] = $sub_model->getDataArrayIdentifierValue();
+                                    $result[$result_key][$k] = $diff;
+                                }
+                            }
+                        }
+                    }
                 }
-                if (empty($result[$result_key])) $result[$result_key] = null;
             } else {
                 $sub_model->injectGamineService($this->_gamineservice, $mappings['sub_model']['entity']);
                 $result[$result_key] = $this->{$property}->toDataArray();
