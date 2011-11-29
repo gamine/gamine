@@ -213,7 +213,7 @@ abstract class BaseManager
         }
 
         $object->injectGamineService($this->gamine_service, $this->entity_key);
-        $is_new = $object->hasDataArrayIdentifierValue();
+        $is_new = !$object->hasDataArrayIdentifierValue();
 
         $do_continue = true;
         $result = false;
@@ -225,7 +225,7 @@ abstract class BaseManager
             $do_continue = $this->beforeSave($object);
         }
 
-        if ($do_continue) {
+        if ($do_continue !== false) {
             // Save can do both insert and update with MongoDB.
             try {
                 $new_data = $this->access_service->save($object, $this->getEntityResource());
