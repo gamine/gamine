@@ -474,12 +474,11 @@ abstract class BaseModel implements StorableObjectInterface
                             foreach ($result[$result_key] as $k => $res) {
                                 $diff = (array_key_exists($k, $this->_original_data)) ? array_diff_assoc($this->_original_data[$result_key][$k], $res) : $res;
                                 if (!count($diff)) {
-                                    $result[$result_key][$k] = array($pk => $sub_model->getDataArrayIdentifierValue());
+                                    $result[$result_key][$k] = array($pk => $res[$pk]);
                                 } else {
-                                    if ($sub_model->getDataArrayIdentifierValue()) {
-                                        $diff[$pk] = $sub_model->getDataArrayIdentifierValue();
-                                    }
-                                    if (array_key_exists($pk, $diff) && $diff[$pk] === null) {
+                                    if ($res[$pk]) {
+                                        $diff[$pk] = $res[$pk];
+                                    } else {
                                         unset($diff[$pk]);
                                     }
 
