@@ -478,7 +478,8 @@ abstract class BaseModel implements StorableObjectInterface
                                 } else {
                                     if ($sub_model->getDataArrayIdentifierValue()) {
                                         $diff[$pk] = $sub_model->getDataArrayIdentifierValue();
-                                    } else {
+                                    }
+                                    if (array_key_exists($pk, $diff) && $diff[$pk] === null) {
                                         unset($diff[$pk]);
                                     }
 
