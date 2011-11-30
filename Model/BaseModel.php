@@ -472,7 +472,7 @@ abstract class BaseModel implements StorableObjectInterface
                         if ($mappings['sub_model']['extract_mode'] == 'min') {
                             $pk = $this->_gamineservice->getPrimaryKeyProperty($mappings['sub_model']['entity']);
                             foreach ($result[$result_key] as $k => $res) {
-                                $diff = array_diff_assoc($this->_original_data[$result_key][$k], $res);
+                                $diff = (array_key_exists($k, $this->_original_data)) ? array_diff_assoc($this->_original_data[$result_key][$k], $res) : $res;
                                 if (!count($diff)) {
                                     $result[$result_key][$k] = array($pk => $sub_model->getDataArrayIdentifierValue());
                                 } else {
