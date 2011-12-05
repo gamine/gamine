@@ -167,7 +167,9 @@ abstract class BaseManager
     public function findAll($params = array())
     {
         $objects = array();
-        foreach ($this->access_service->findAll($this->getCollectionResource(), $params) as $o) {
+        $res = $this->access_service->findAll($this->getCollectionResource(), $params);
+        if (!is_array($res)) return null;
+        foreach ($res as $o) {
             $object = $this->getInstantiatedModel();
             $object->fromDataArray($o);
             $objects[] = $object;
