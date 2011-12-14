@@ -290,7 +290,7 @@ abstract class BaseModel implements StorableObjectInterface
     {
         $resource_route = $this->getResourceByRoutename($routename, $params);
         $resource_route = (substr($resource_route, 0, 1) == "/") ? $resource_route : $this->_getResourceLocation() . '/' . $resource_route;
-        return $this->_gamineservice->getManager($this->entity_key)->call($resource_route, 'DELETE', $post_params);
+        return $this->_gamineservice->getManager($this->entity_key)->getAccessService()->call($resource_route, 'DELETE', $post_params);
     }
 
     private function __populateSubModel(array $mapping, array $value = array())
