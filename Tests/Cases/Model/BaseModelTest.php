@@ -34,6 +34,7 @@ class BaseModelTest extends \PHPUnit_Framework_TestCase
                             'collection' => true,
                             'entity' => 'subber',
                             'identifier' => 'type',
+                            'extract_mode' => 'full',
                             'value' => null,
                     )
                 ),

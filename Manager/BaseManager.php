@@ -10,15 +10,10 @@
 namespace RedpillLinpro\GamineBundle\Manager;
 
 use \Exception;
+use \RedpillLinpro\GamineBundle\Exceptions\ValidationError;
 
 abstract class BaseManager
 {
-    /*
-     * Remember to put these in the Manages extending this one.
-     * Right now they are all the same but I define different names here.
-     * Or rather, they have to be defined in the object extending this one.
-     */
-
     /**
      * @var \RedpillLinpro\GamineBundle\Gamine
      */
@@ -172,7 +167,9 @@ abstract class BaseManager
     public function findAll($params = array())
     {
         $objects = array();
-        foreach ($this->access_service->findAll($this->getCollectionResource(), $params) as $o) {
+        $res = $this->access_service->findAll($this->getCollectionResource(), $params);
+        if (!is_array($res)) return null;
+        foreach ($res as $o) {
             $object = $this->getInstantiatedModel();
             $object->fromDataArray($o);
             $objects[] = $object;
@@ -218,7 +215,7 @@ abstract class BaseManager
         }
 
         $object->injectGamineService($this->gamine_service, $this->entity_key);
-        $is_new = $object->hasDataArrayIdentifierValue();
+        $is_new = !$object->hasDataArrayIdentifierValue();
 
         $do_continue = true;
         $result = false;
@@ -230,13 +227,17 @@ abstract class BaseManager
             $do_continue = $this->beforeSave($object);
         }
 
-        if ($do_continue) {
+        if ($do_continue !== false) {
             // Save can do both insert and update with MongoDB.
             try {
                 $new_data = $this->access_service->save($object, $this->getEntityResource());
                 $result = is_array($new_data);
             } catch (\VGS_Client_Exception $e) {
                 $result = false;
+            } catch (ValidationError $e) {
+                $result = false;
+                $error = $e->getError();
+                $object->setValidationErrors($error['description'], $e->getData());
             }
             if ($result) {
                 $object->fromDataArray($new_data, false);
@@ -279,4 +280,10 @@ abstract class BaseManager
         return $status;
     }
 
+    protected function _getPayload($result) {
+        if (is_array($result) && isset($result['data'])) {
+            return $result['data'];
+        }
+        return $result;
+    }
 }

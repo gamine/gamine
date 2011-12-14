@@ -12,6 +12,8 @@ use \Exception;
 class Gamine
 {
 
+    static protected $_cache_directory;
+
     protected $_backends = array();
     protected $_backendsconfig = array();
 
@@ -19,21 +21,88 @@ class Gamine
 
     protected $_managers = array();
     protected $_entityconfigs = array();
+    protected $_cache_enabled = false;
 
-    public function __construct($backends = array(), $managers = array())
+    public static function setCacheDirectory($cache_directory)
+    {
+        self::$_cache_directory = $cache_directory;
+    }
+
+    protected function initCache()
+    {
+
+        if (!file_exists(self::$_cache_directory)) {
+            mkdir(self::$_cache_directory);
+        }
+    }
+
+    public static function getCacheDirectory()
+    {
+        return self::$_cache_directory;
+    }
+
+    public function describeClass($class)
+    {
+        $return_array = null;
+        if (self::$_cache_directory) {
+            $filename = self::getCacheDirectory() . str_replace("\\", '_', $class) . '_description.cache.php';
+            if (file_exists($filename)) {
+                $return_array = unserialize(file_get_contents($filename));
+            }
+        }
+        if($return_array === null) {
+            $reflection_class = new \ReflectionClass($class);
+            $reader = new \Doctrine\Common\Annotations\AnnotationReader(new \Doctrine\Common\Cache\ArrayCache());
+            $reader->setEnableParsePhpImports(true);
+            $reader->setDefaultAnnotationNamespace('RedpillLinpro\\GamineBundle\\Annotations\\');
+            $return_array = array();
+            foreach ($reflection_class->getProperties() as $property) {
+                $is_id = false;
+                $annotations = $reader->getPropertyAnnotations($property);
+                foreach ($annotations as $annotation) {
+                    if (!method_exists($annotation, 'getKey')) continue;
+                    switch ($annotation->getKey()) {
+                        case 'id' :
+                            $return_array['primary_key']['property'] = $property->name;
+                            $return_array['primary_key']['key'] = $property->name;
+                            $is_id = true;
+                            break;
+                    }
+                    $return_array['properties'][$property->name][$annotation->getKey()] = (array) $annotation;
+                }
+                if ($is_id && isset($return_array['properties'][$property->name]['column']['name'])) {
+                    $return_array['primary_key']['key'] = $return_array['properties'][$property->name]['column']['name'];
+                }
+            }
+            if (self::$_cache_directory) file_put_contents($filename, serialize($return_array));
+        }
+        return $return_array;
+    }
+
+    public function __construct($backends = array(), $managers = array(), $cache_enabled = false)
     {
         $this->_backendsconfig = $backends;
         $this->_entityconfigs = $managers;
 
-        /** @todo look for cached meta data, populate if there **/
+        if($cache_enabled){
+            self::initCache();
+        }else{
+            self::$_cache_directory = null;
+        }
+
+
     }
 
     protected function _initBackend($backend)
     {
         if (!array_key_exists($backend, $this->_backendsconfig))
-            throw new Exception('This backend has not been configured. Please check your services configuration.');
+            throw new \InvalidArgumentException('This backend has not been configured. Please check your services configuration.');
 
         $classname = $this->_backendsconfig[$backend]['class'];
+
+        if (!class_exists($classname))
+            throw new \UnexpectedValueException("The class this backend depends on ({$classname}) does not exist in this scope. Please check your services configuration.");
+
         $this->_backends[$backend] = new $classname($this->_backendsconfig[$backend]['arguments']);
     }
 
@@ -49,16 +118,27 @@ class Gamine
         if (!array_key_exists($backend, $this->_backends)) {
             $this->_initBackend($backend);
         }
+
+        if (!array_key_exists($backend, $this->_backends))
+            throw new \RuntimeException("This backend ({$backend}) did not instantiate properly. Please check your services configuration.");
+
         return $this->_backends[$backend];
     }
 
     protected function _initManager($entity)
     {
         if (!array_key_exists($entity, $this->_entityconfigs))
-            throw new Exception('This manager has not been configured. Please check your services configuration.');
+            throw new \InvalidArgumentException('This manager has not been configured. Please check your services configuration.');
 
         $classname = $this->_entityconfigs[$entity]['manager']['class'];
-        $this->_managers[$entity] = new $classname($this, $entity, $this->getBackend($this->_entityconfigs[$entity]['manager']['arguments']['access_service']));
+
+        if (!class_exists($classname))
+            throw new \UnexpectedValueException("The class this manager depends on ({$classname}) does not exist in this scope. Please check your services configuration.");
+
+        $entity_config = $this->_entityconfigs[$entity]['manager']['arguments'];
+        $options = isset($entity_config['cache_service']) ? array('cache_service' => $entity_config['cache_service']) : null;
+
+        $this->_managers[$entity] = new $classname($this, $entity, $this->getBackend($entity_config['access_service']), $options);
     }
 
     /**
@@ -73,6 +153,10 @@ class Gamine
         if (!array_key_exists($entity, $this->_managers)) {
             $this->_initManager($entity);
         }
+
+        if (!array_key_exists($entity, $this->_managers))
+            throw new \RuntimeException("This manager for this entity ({$entity}) did not instantiate properly. Please check your services configuration.");
+                
         return $this->_managers[$entity];
     }
 
@@ -89,7 +173,7 @@ class Gamine
     public function getCollectionResource($entity)
     {
         if (!isset($this->_entityconfigs[$entity]['collection']))
-            throw new Exception('Missing collection configuration. Please check your services configuration.');
+            throw new \Exception('Missing collection configuration. Please check your services configuration.');
 
         return $this->_entityconfigs[$entity]['collection'];
     }
@@ -97,7 +181,7 @@ class Gamine
     public function getEntityResource($entity)
     {
         if (!isset($this->_entityconfigs[$entity]['entity']))
-            throw new Exception('Missing entity configuration. Please check your services configuration.');
+            throw new \Exception('Missing entity configuration. Please check your services configuration.');
 
         return $this->_entityconfigs[$entity]['entity'];
     }
@@ -105,37 +189,34 @@ class Gamine
     public function getModelClassname($entity)
     {
         if (!isset($this->_entityconfigs[$entity]['model']['class']))
-            throw new Exception('Missing model class configuration. Please check your services configuration.');
+            throw new \Exception('Missing model class configuration. Please check your services configuration.');
 
         return $this->_entityconfigs[$entity]['model']['class'];
     }
 
-    public function getMappedProperties($entity)
+    protected function _populateDataSourceMetaInformation($entity)
     {
         if (!array_key_exists($entity, $this->_datasource_meta)) {
             $classname = $this->getModelClassname($entity);
-            $this->_datasource_meta[$entity] = $classname::describe();
+            $this->_datasource_meta[$entity] = self::describeClass($classname);
         }
+    }
 
+    public function getMappedProperties($entity)
+    {
+        $this->_populateDataSourceMetaInformation($entity);
         return $this->_datasource_meta[$entity]['properties'];
     }
 
     public function getMappedProperty($entity,$property)
     {
-        if (!array_key_exists($entity, $this->_datasource_meta)) {
-            $classname = $this->getModelClassname($entity);
-            $this->_datasource_meta[$entity] = $classname::describe();
-        }
-
+        $this->_populateDataSourceMetaInformation($entity);
         return $this->_datasource_meta[$entity]['properties'][$property];
     }
 
     public function getPrimaryKeyProperty($entity)
     {
-        if (!array_key_exists($entity, $this->_datasource_meta)) {
-            $classname = $this->getModelClassname($entity);
-            $this->_datasource_meta[$entity] = $classname::describe();
-        }
+        $this->_populateDataSourceMetaInformation($entity);
         if (!array_key_exists('primary_key', $this->_datasource_meta[$entity]))
             throw new \Exception('Missing @Id on '. $entity);
 
