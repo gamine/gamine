@@ -19,16 +19,13 @@ class SimpleMongo implements ServiceInterface
     public function __construct($options = array())
     {
         $conn_string = 'mongodb://';
-        if (array_key_exists('dbusername', $options)) {
+        if ($options['dbusername'] != '') {
             $conn_string .= $options['dbusername'];
-            if (array_key_exists('dbpassword', $options)) {
                 $conn_string .= ':'.$options['dbpassword'];
-            }
             $conn_string .= '@';
         }
         $conn_string .= $options['dbhost'];
         $conn_string .= (array_key_exists('dbport', $options)) ? ':' . $options['dbport'] : '';
-        $conn_string .= '/' . $options['dbname'];
         $this->mongo = new \Mongo($conn_string);
         $this->mongodb = $this->mongo->selectDB($options['dbname']);
     }
@@ -52,7 +49,7 @@ class SimpleMongo implements ServiceInterface
         if (isset($data['id']))
         {
             $mongo_id = new \MongoId($data['id']);
-            // Back 
+            // Back
             unset($data['id']);
             $mongo_collection->update(array('_id' => $mongo_id), $data);
             // and Forth
@@ -94,23 +91,30 @@ class SimpleMongo implements ServiceInterface
         $mongo_collection = $this->mongodb->$collection;
 
         $mid = new \MongoId($id);
-        return $mongo_collection->remove(array('_id' => $mid), 
+        return $mongo_collection->remove(array('_id' => $mid),
                 array('justOne' => true));
     }
 
     public function findAll($collection, $params = array())
     {
+        $limit = false;
+        if (array_key_exists('limit', $params)) {
+            $limit = $params['limit'];
+            unset($params['limit']);
+        }
         $retarr = array();
         $results = $this->mongodb->$collection->find($params);
         // $this->mongodb->$collection->find() as $data)
+        $count = 0;
         foreach (iterator_to_array($results) as $data) {
+            if ($limit && ++$count > ($limit) ) break;
             $data['id'] = $data['_id'];
             unset($data['_id']);
             $retarr[] = $data;
         }
         return $retarr;
     }
-    
+
     public function findOneById($collection, $id, $params = array())
     {
         $data = $this->mongodb->$collection->findOne(
@@ -120,7 +124,7 @@ class SimpleMongo implements ServiceInterface
         unset($data['_id']);
         return $data;
     }
-    
+
     public function findOneByKeyVal($collection, $key, $val, $params = array())
     {
         $data = $this->mongodb->$collection->findOne(array($key => $val));
@@ -128,17 +132,17 @@ class SimpleMongo implements ServiceInterface
         unset($data['_id']);
         return $data;
     }
-    
+
     public function findByKeyVal($collection, $key, $val, $params = array())
     {
         $retarr = array();
-    
-        // PHPs Mongodb thingie has an issue with numbers, it quotes them 
+
+        // PHPs Mongodb thingie has an issue with numbers, it quotes them
         // unless it is explocitly typecasted or manipulated in math context.
         if (is_numeric($val)) {
             $val = $val * 1;
         }
-    
+
         $cursor = $this->mongodb->$collection->find(array($key => $val));
         // Since I am cooking rigth from php.net I'll use while here:
         while ($cursor->hasNext()) {

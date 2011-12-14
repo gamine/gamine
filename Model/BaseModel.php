@@ -30,32 +30,12 @@ abstract class BaseModel implements StorableObjectInterface
     protected $_resource_location = null;
     protected $_resource_location_prefix = null;
 
+    protected $_validation_message;
+    protected $_validation_errors;
+
     public static function describe()
     {
-        $reflection_class = new \ReflectionClass(get_called_class());
-        $reader = new \Doctrine\Common\Annotations\AnnotationReader(new \Doctrine\Common\Cache\ArrayCache());
-        $reader->setEnableParsePhpImports(true);
-        $reader->setDefaultAnnotationNamespace('RedpillLinpro\\GamineBundle\\Annotations\\');
-        $return_array = array();
-        foreach ($reflection_class->getProperties() as $property) {
-            $is_id = false;
-            $annotations = $reader->getPropertyAnnotations($property);
-            foreach ($annotations as $annotation) {
-                if (!method_exists($annotation, 'getKey')) continue;
-                switch ($annotation->getKey()) {
-                    case 'id' :
-                        $return_array['primary_key']['property'] = $property->name;
-                        $return_array['primary_key']['key'] = $property->name;
-                        $is_id = true;
-                        break;
-                }
-                $return_array['properties'][$property->name][$annotation->getKey()] = (array) $annotation;
-            }
-            if ($is_id && isset($return_array['properties'][$property->name]['column']['name'])) {
-                $return_array['primary_key']['key'] = $return_array['properties'][$property->name]['column']['name'];
-            }
-        }
-        return $return_array;
+        return \RedpillLinpro\GamineBundle\Gamine::describeClass(get_called_class());
     }
 
     /**
@@ -122,8 +102,8 @@ abstract class BaseModel implements StorableObjectInterface
         if ($this->_gamineservice && method_exists($this->_gamineservice, 'getPrimaryKeyProperty'))
             $primary_key_property = $this->_gamineservice->getPrimaryKeyProperty($this->entity_key);
         else {
-            $describe = static::describe();
-            $primary_key_property = $describe['primary_key']['property'];
+            $description = \RedpillLinpro\GamineBundle\Gamine::describeClass(get_called_class());
+            $primary_key_property = $description['primary_key']['property'];
         }
 
         return $this->{$primary_key_property};
@@ -152,8 +132,8 @@ abstract class BaseModel implements StorableObjectInterface
         if ($this->_gamineservice && method_exists($this->_gamineservice, 'getPrimaryKeyProperty'))
             $primary_key_property = $this->_gamineservice->getPrimaryKeyProperty($this->entity_key);
         else {
-            $describe = static::describe();
-            $primary_key_property = $describe['primary_key']['property'];
+            $description = \RedpillLinpro\GamineBundle\Gamine::describeClass(get_called_class());
+            $primary_key_property = $description['primary_key']['property'];
         }
         $this->{$primary_key_property} = $identifier_value;
     }
@@ -380,12 +360,14 @@ abstract class BaseModel implements StorableObjectInterface
                 // Use the specified identifier as an array key, or none if not
                 // provided
                 $key = (array_key_exists('identifier', $mappings['sub_model'])) ? $mappings['sub_model']['identifier'] : null;
-                foreach ($value as $one) {
-                    $submodel = $this->__populateSubModel($mappings['sub_model'], $one);
-                    if ($key) {
-                        $submodels[$one[$key]] = $submodel;
-                    } else {
-                        $submodels[] = $submodel;
+                if ($value) {
+                    foreach ($value as $subkey => $one) {
+                        $submodel = $this->__populateSubModel($mappings['sub_model'], $one);
+                        if ($key) {
+                            $submodels[$one[$key]] = $submodel;
+                        } else {
+                            $submodels[$subkey] = $submodel;
+                        }
                     }
                 }
                 $this->{$property} = $submodels ?: $value;
@@ -404,7 +386,7 @@ abstract class BaseModel implements StorableObjectInterface
      *
      * @param mixed $property
      */
-    protected function _populateRelatedObject($property)
+    protected function _populateRelatedObject($property, $params = array())
     {
         // Don't populate the related object if it already is
         if (is_array($this->$property) || is_object($this->$property)) return;
@@ -413,13 +395,12 @@ abstract class BaseModel implements StorableObjectInterface
 
         $primary_key = $this->_gamineservice->getPrimaryKeyProperty($this->entity_key);
 
-        $query = array();
         $final_resource_location = '';
         if ($mappings['relates']['relative']) {
             $final_resource_location .= $this->_getResourceLocation() . '/';
         } else {
             $fkey = $mappings['relates']['related_by'];
-            $query = array($fkey => $this->getDataArrayIdentifierValue());
+            $params[$fkey] = $this->getDataArrayIdentifierValue();
         }
 
         if ($mappings['relates']['collection']) {
@@ -428,11 +409,13 @@ abstract class BaseModel implements StorableObjectInterface
             $entity_path = $this->_gamineservice->getEntityResource($mappings['relates']['entity']);
             if (strpos($entity_path, '{:id}')) {
                  $final_resource_location .= str_ireplace('{:id}', $this->getDataArrayIdentifierValue(), $entity_path);
+            } elseif ($mappings['relates']['related_by']) {
+                 $final_resource_location .= $entity_path . '/' . $params[$fkey];
             } else {
                  $final_resource_location .= $entity_path;
             }
         }
-        $data = $this->_gamineservice->getManager($mappings['relates']['entity'])->getAccessService()->call($final_resource_location, 'GET', $query);
+        $data = $this->_gamineservice->getManager($mappings['relates']['entity'])->getAccessService()->call($final_resource_location, 'GET', $params, false);
         $this->_mapRelationData($property, $data, $mappings['relates']);
     }
 
@@ -462,7 +445,7 @@ abstract class BaseModel implements StorableObjectInterface
 
     protected function _extractDataArrayProperty($property, array $mappings, &$result, $removeUnchanged = true)
     {
-        if (!array_key_exists('column', $mappings)) return;
+        if (!array_key_exists('column', $mappings) || array_key_exists('readonly', $mappings)) return;
         $result_key = (isset($mappings['column']['name'])) ? $mappings['column']['name'] : $property;
 
         if (array_key_exists('extract', $mappings)) {
@@ -478,12 +461,35 @@ abstract class BaseModel implements StorableObjectInterface
         if (array_key_exists('sub_model', $mappings)) {
             if ($mappings['sub_model']['collection']) {
                 $result[$result_key] = array();
-                if ($this->{$property})
-                foreach ($this->{$property} as $k => $sub_model) {
-                    $result[$result_key][] = $sub_model->toDataArray(false);
+                if (is_array($this->{$property})) {
+                    foreach ($this->{$property} as $k => $sub_model) {
+                        $sub_model->injectGamineService($this->_gamineservice, $mappings['sub_model']['entity']);
+                        $result[$result_key][$k] = $sub_model->toDataArray(false);
+                    }
+                    if (empty($result[$result_key])) {
+                        $result[$result_key] = null;
+                    } else {
+                        if ($mappings['sub_model']['extract_mode'] == 'min') {
+                            $pk = $this->_gamineservice->getPrimaryKeyProperty($mappings['sub_model']['entity']);
+                            foreach ($result[$result_key] as $k => $res) {
+                                $diff = (array_key_exists($k, $this->_original_data)) ? array_diff_assoc($this->_original_data[$result_key][$k], $res) : $res;
+                                if (!count($diff)) {
+                                    $result[$result_key][$k] = array($pk => $res[$pk]);
+                                } else {
+                                    if ($res[$pk]) {
+                                        $diff[$pk] = $res[$pk];
+                                    } else {
+                                        unset($diff[$pk]);
+                                    }
+
+                                    $result[$result_key][$k] = $diff;
+                                }
+                            }
+                        }
+                    }
                 }
-                if (empty($result[$result_key])) $result[$result_key] = null;
             } else {
+                $sub_model->injectGamineService($this->_gamineservice, $mappings['sub_model']['entity']);
                 $result[$result_key] = $this->{$property}->toDataArray();
                 if ($removeUnchanged && empty($result[$result_key])) unset($result[$result_key]);
             }
@@ -491,7 +497,7 @@ abstract class BaseModel implements StorableObjectInterface
         }
 
         if (!$removeUnchanged || !isset($this->_original_data[$result_key]) || $this->{$property} !== $this->_original_data[$result_key])
-            $result[$result_key] = $this->{$property};
+            $result[$result_key] = (is_object($this->{$property}) && $this->{$property} instanceof \RedpillLinpro\GamineBundle\Model\StorableObjectInterface) ? $this->{$property}->getDataArrayIdentifierValue() : $this->{$property};
     }
 
     /**
@@ -505,9 +511,13 @@ abstract class BaseModel implements StorableObjectInterface
         if ($this->_gamineservice)
             $mapped_properties = $this->_gamineservice->getMappedProperties($this->entity_key);
         else {
-            $desc = static::describe();
-            $mapped_properties = $desc['properties'];
+            $description = \RedpillLinpro\GamineBundle\Gamine::describeClass(get_called_class());
+            $mapped_properties = $description['properties'];
         }
+
+        if (array_key_exists('primary_key', $mapped_properties) && !array_key_exists($result[$mapped_properties['primary_key']['key']]))
+            throw new \Exception('The result data returned from the endpoint is not formatted correctly (Could not find primary key in returned data)');
+
         foreach ($mapped_properties as $property => $mappings) {
             $this->_applyDataArrayProperty($property, $mappings, $result);
         }
@@ -517,18 +527,33 @@ abstract class BaseModel implements StorableObjectInterface
     {
         $result = array();
 
-        if ($this->_gamineservice)
+        if ($this->_gamineservice){
             $mapped_properties = $this->_gamineservice->getMappedProperties($this->entity_key);
-        else {
-            $desc = static::describe();
-            $mapped_properties = $desc['properties'];
+        }else {
+            $description = \RedpillLinpro\GamineBundle\Gamine::describeClass(get_called_class());
+            $mapped_properties = $description['properties'];
         }
 
         foreach ($mapped_properties as $property => $mappings) {
-            if (array_key_exists('relates', $mappings)) continue;
+            if (array_key_exists('relates', $mappings) && !array_key_exists('column', $mappings)) continue;
             $this->_extractDataArrayProperty($property, $mappings, $result, $removeUnchanged);
         }
         return $result;
     }
 
+    public function setValidationErrors($message, $errors = array())
+    {
+        $this->_validation_message = $message;
+        $this->_validation_errors = $errors;
+    }
+
+    public function getValidationMessage()
+    {
+        return $this->_validation_message;
+    }
+
+    public function getValidationErrors()
+    {
+        return $this->_validation_errors;
+    }
 }
