@@ -454,7 +454,11 @@ abstract class BaseModel implements StorableObjectInterface
             }
             $data[$extracted_result_key] = $this->{$extracted_property};
         }
-        $result[$result_key] = !$hasChanged && $removeUnchanged ? array() : $data;
+
+        if(!$hasChanged && $removeUnchanged){
+            return;
+        }
+        $result[$result_key] = $data;
     }
 
     protected function _mapSubModelAnnotation(array $mappings, &$result, $result_key, $removeUnchanged, $property)

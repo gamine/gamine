@@ -189,7 +189,7 @@ class BaseModelTest extends \PHPUnit_Framework_TestCase
             array(
                 'mappings' => $mappings,
                 'original_data' => $original_data2,
-                'expected' => array('names' => array()),
+                'expected' => array(),
                 'property' => 'names',
                 'removeUnchanged' => true),
             array(
