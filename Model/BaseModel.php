@@ -449,7 +449,7 @@ abstract class BaseModel implements StorableObjectInterface
         $data = array();
         $hasChanged = false;
         foreach ($mappings['extract']['columns'] as $extracted_result_key => $extracted_property) {
-            if (isset($this->original_data[$result_key]) && $this->_original_data[$result_key][$extracted_result_key] !== $this->{$extracted_property}) {
+            if (isset($this->_original_data[$result_key]) && $this->_original_data[$result_key][$extracted_result_key] !== $this->{$extracted_property}) {
                 $hasChanged = true;
             }
             $data[$extracted_result_key] = $this->{$extracted_property};
