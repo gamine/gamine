@@ -113,7 +113,8 @@ class BaseModelTest extends \PHPUnit_Framework_TestCase
             'id' => 123,
             'title' => 'Hello world',
             'names' =>array('first' => 'Key', 'last' => 'West'),
-            'subber' => null
+            'subber' => array(),
+            'mother' => null,
         );
         $result = $model->toDataArray(false);
         $this->assertEquals($expected, $result);
@@ -132,7 +133,10 @@ class BaseModelTest extends \PHPUnit_Framework_TestCase
 
         $model->title = 'New title';
 
-        $expected = array('title' => array('from' => 'Hello world', 'to' => 'New title'));
+        $expected = array(
+            'title' => array('from' => 'Hello world', 'to' => 'New title'),
+            'subber' => array('from' => null, 'to' => array()),
+        );
         $result = $model->getModifiedDataArray();
         $this->assertEquals($expected, $result);
     }
