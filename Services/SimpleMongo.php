@@ -26,7 +26,13 @@ class SimpleMongo implements ServiceInterface
         }
         $conn_string .= $options['dbhost'];
         $conn_string .= (array_key_exists('dbport', $options)) ? ':' . $options['dbport'] : '';
-        $this->mongo = new \Mongo($conn_string);
+
+	$opts = array();
+	if ($options["dbreplicaset"]) {
+		$opts["replicaSet"] = $options["dbreplicaset"];
+	}
+
+        $this->mongo = new \Mongo($conn_string, $opts);
         $this->mongodb = $this->mongo->selectDB($options['dbname']);
     }
 
