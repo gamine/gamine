@@ -319,7 +319,7 @@ abstract class BaseModel implements StorableObjectInterface
 
         // Ignore this property if there is no matching $key in the result array,
         // meaning we will use the object's own default value for that property
-        if (!array_key_exists($result_key, $result)) return;
+        if (!is_array($result) || !array_key_exists($result_key, $result)) return;
 
         // Check to see if this property has an "Extract" annotation, in which
         // case we will take data from the result array and extract it into 
