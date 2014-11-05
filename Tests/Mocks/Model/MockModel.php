@@ -25,7 +25,7 @@ class MockModel extends \RedpillLinpro\GamineBundle\Model\BaseModel
     public $lastName;
 
     public $bleh;
-    
+
     /**
      * @Column
      * @SubModel(entity="subber", collection=true, identifier="type")
@@ -37,4 +37,14 @@ class MockModel extends \RedpillLinpro\GamineBundle\Model\BaseModel
      * @Relates(entity="parent", collection=true, relative=false, related_by="fk")
      */
     public $mother;
-}
+
+    public function mapExtractAnnotation(array $mappings, &$result, $result_key, $removeUnchanged)
+    {
+        $this->_mapExtractAnnotation($mappings, $result, $result_key, $removeUnchanged);
+    }
+
+    public function setOriginalData($data)
+    {
+        $this->_original_data = $data;
+    }
+ }

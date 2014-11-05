@@ -113,7 +113,8 @@ class BaseModelTest extends \PHPUnit_Framework_TestCase
             'id' => 123,
             'title' => 'Hello world',
             'names' =>array('first' => 'Key', 'last' => 'West'),
-            'subber' => null
+            'subber' => array(),
+            'mother' => null,
         );
         $result = $model->toDataArray(false);
         $this->assertEquals($expected, $result);
@@ -132,9 +133,71 @@ class BaseModelTest extends \PHPUnit_Framework_TestCase
 
         $model->title = 'New title';
 
-        $expected = array('title' => array('from' => 'Hello world', 'to' => 'New title'));
+        $expected = array(
+            'title' => array('from' => 'Hello world', 'to' => 'New title'),
+            'subber' => array('from' => null, 'to' => array()),
+        );
         $result = $model->getModifiedDataArray();
         $this->assertEquals($expected, $result);
     }
 
+    /**
+     *  @dataProvider mapExtractAnnotationProvider
+     */
+    public function testMapExtractAnnotation($mappings, $original_data, $expected, $result_key, $removeUnchanged)
+    {
+        $model = new MockModel();
+        $model->setOriginalData($original_data);
+        $model->firstName = 'Kalle';
+        $model->lastName = 'Anka';
+        $result = array();
+        $model->mapExtractAnnotation($mappings, $result, $result_key, $removeUnchanged);
+        $this->assertEquals($expected, $result);
+
+    }
+
+    public function mapExtractAnnotationProvider()
+    {
+        $mappings = array('extract' => array(
+                    'columns'        => array('first' => 'firstName', 'last' => 'lastName' ),
+                    'preserve_items' => false,
+                    'value'          => null));
+
+        $original_data =  array(
+                    'names' => array(
+                        'first' => 'Donald',
+                        'last' => 'Duck'));
+        $original_data2 =  array(
+                    'names' => array(
+                        'first' => 'Kalle',
+                        'last' => 'Anka'));
+        return array(
+            array(
+                'mappings' => $mappings,
+                'original_data' => $original_data,
+                'expected' => array(
+                    'names' =>  array('first' => 'Kalle', 'last' => 'Anka' )),
+                'property' => 'names',
+                'removeUnchanged' => false),
+            array(
+                'mappings' => $mappings,
+                'original_data' => $original_data,
+                'expected' => array(
+                    'names' =>  array('first' => 'Kalle', 'last' => 'Anka' )),
+                'property' => 'names',
+                'removeUnchanged' => true),
+            array(
+                'mappings' => $mappings,
+                'original_data' => $original_data2,
+                'expected' => array(),
+                'property' => 'names',
+                'removeUnchanged' => true),
+            array(
+                'mappings' => $mappings,
+                'original_data' => $original_data2,
+                'expected' => $original_data2,
+                'property' => 'names',
+                'removeUnchanged' => false),
+        );
+    }
 }

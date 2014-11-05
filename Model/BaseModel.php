@@ -290,7 +290,7 @@ abstract class BaseModel implements StorableObjectInterface
     {
         $resource_route = $this->getResourceByRoutename($routename, $params);
         $resource_route = (substr($resource_route, 0, 1) == "/") ? $resource_route : $this->_getResourceLocation() . '/' . $resource_route;
-        return $this->_gamineservice->getManager($this->entity_key)->call($resource_route, 'DELETE', $post_params);
+        return $this->_gamineservice->getManager($this->entity_key)->getAccessService()->call($resource_route, 'DELETE', $post_params);
     }
 
     private function __populateSubModel(array $mapping, array $value = array())
@@ -319,7 +319,7 @@ abstract class BaseModel implements StorableObjectInterface
 
         // Ignore this property if there is no matching $key in the result array,
         // meaning we will use the object's own default value for that property
-        if (!array_key_exists($result_key, $result)) return;
+        if (!is_array($result) || !array_key_exists($result_key, $result)) return;
 
         // Check to see if this property has an "Extract" annotation, in which
         // case we will take data from the result array and extract it into 
@@ -443,56 +443,75 @@ abstract class BaseModel implements StorableObjectInterface
         }
     }
 
+
+    protected function _mapExtractAnnotation(array $mappings, &$result, $result_key, $removeUnchanged)
+    {
+        $data = array();
+        $hasChanged = false;
+        foreach ($mappings['extract']['columns'] as $extracted_result_key => $extracted_property) {
+            if (isset($this->_original_data[$result_key]) && $this->_original_data[$result_key][$extracted_result_key] !== $this->{$extracted_property}) {
+                $hasChanged = true;
+            }
+            $data[$extracted_result_key] = $this->{$extracted_property};
+        }
+
+        if(!$hasChanged && $removeUnchanged){
+            return;
+        }
+        $result[$result_key] = $data;
+    }
+
+    protected function _mapSubModelAnnotation(array $mappings, &$result, $result_key, $removeUnchanged, $property)
+    {
+        if ($mappings['sub_model']['collection']) {
+            $result[$result_key] = array();
+            if (is_array($this->{$property})) {
+                foreach ($this->{$property} as $k => $sub_model) {
+                    $sub_model->injectGamineService($this->_gamineservice, $mappings['sub_model']['entity']);
+                    $result[$result_key][$k] = $sub_model->toDataArray(false);
+                }
+                if (empty($result[$result_key])) {
+                    $result[$result_key] = null;
+                } else {
+                    if ($mappings['sub_model']['extract_mode'] == 'min') {
+                        $pk = $this->_gamineservice->getPrimaryKeyProperty($mappings['sub_model']['entity']);
+                        foreach ($result[$result_key] as $k => $res) {
+                            $diff = (array_key_exists($k, $this->_original_data)) ? array_diff_assoc($this->_original_data[$result_key][$k], $res) : $res;
+                            if (!count($diff)) {
+                                $result[$result_key][$k] = array($pk => $res[$pk]);
+                            } else {
+                                if ($res[$pk]) {
+                                    $diff[$pk] = $res[$pk];
+                                } else {
+                                    unset($diff[$pk]);
+                                }
+
+                                $result[$result_key][$k] = $diff;
+                            }
+                        }
+                    }
+                }
+            }
+        } else {
+            $sub_model->injectGamineService($this->_gamineservice, $mappings['sub_model']['entity']);
+            $result[$result_key] = $this->{$property}->toDataArray();
+            if ($removeUnchanged && empty($result[$result_key])) unset($result[$result_key]);
+        }
+    }
+
+
+
     protected function _extractDataArrayProperty($property, array $mappings, &$result, $removeUnchanged = true)
     {
         if (!array_key_exists('column', $mappings) || array_key_exists('readonly', $mappings)) return;
         $result_key = (isset($mappings['column']['name'])) ? $mappings['column']['name'] : $property;
 
         if (array_key_exists('extract', $mappings)) {
-            $result[$result_key] = array();
-            foreach ($mappings['extract']['columns'] as $extracted_result_key => $extracted_property) {
-                if ($removeUnchanged && $this->_original_data[$result_key][$extracted_result_key] !== $this->{$extracted_property})
-                    $result[$result_key][$extracted_result_key] = $this->{$extracted_property};
-                elseif (!$removeUnchanged)
-                    $result[$result_key][$extracted_result_key] = $this->{$extracted_property};
-            }
+            $this->_mapExtractAnnotation($mappings, $result, $result_key, $removeUnchanged);
             return;
         }
         if (array_key_exists('sub_model', $mappings)) {
-            if ($mappings['sub_model']['collection']) {
-                $result[$result_key] = array();
-                if (is_array($this->{$property})) {
-                    foreach ($this->{$property} as $k => $sub_model) {
-                        $sub_model->injectGamineService($this->_gamineservice, $mappings['sub_model']['entity']);
-                        $result[$result_key][$k] = $sub_model->toDataArray(false);
-                    }
-                    if (empty($result[$result_key])) {
-                        $result[$result_key] = null;
-                    } else {
-                        if ($mappings['sub_model']['extract_mode'] == 'min') {
-                            $pk = $this->_gamineservice->getPrimaryKeyProperty($mappings['sub_model']['entity']);
-                            foreach ($result[$result_key] as $k => $res) {
-                                $diff = (array_key_exists($k, $this->_original_data)) ? array_diff_assoc($this->_original_data[$result_key][$k], $res) : $res;
-                                if (!count($diff)) {
-                                    $result[$result_key][$k] = array($pk => $res[$pk]);
-                                } else {
-                                    if ($res[$pk]) {
-                                        $diff[$pk] = $res[$pk];
-                                    } else {
-                                        unset($diff[$pk]);
-                                    }
-
-                                    $result[$result_key][$k] = $diff;
-                                }
-                            }
-                        }
-                    }
-                }
-            } else {
-                $sub_model->injectGamineService($this->_gamineservice, $mappings['sub_model']['entity']);
-                $result[$result_key] = $this->{$property}->toDataArray();
-                if ($removeUnchanged && empty($result[$result_key])) unset($result[$result_key]);
-            }
+            $this->_mapSubModelAnnotation($mappings, $result, $result_key, $removeUnchanged, $property);
             return;
         }
 
